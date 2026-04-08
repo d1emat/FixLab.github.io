@@ -21,8 +21,8 @@
       <ul id="navLinks" class="nav-links">
         <li><a href="index.html">Inicio</a></li>
         <li><a href="servicios.html" class="active">Servicios</a></li>
-        <li><a href="tiendas.html">Tiendas</a></li>
-        <li><a href="reacondicionados.html">Reacondicionados</a></li>
+        <li><a href="tiendas.html">Tiendas físicas</a></li>
+        <li><a href="tienda.html">Tienda</a></li>
         <li><a href="contacto.html">Contacto</a></li>
       </ul>
       <a class="btn btn-login" href="login.html">Iniciar sesión</a>
@@ -35,13 +35,64 @@
         <h1 class="section-title">Servicios de reparación</h1>
         <p class="section-subtitle">Trabajamos con rapidez, calidad y garantía para devolverte tu móvil en perfecto estado.</p>
         <div class="cards-grid">
-          <article class="card"><h3>Reparación de pantalla</h3><p>Sustitución precisa de pantallas rotas o sin respuesta táctil.</p></article>
-          <article class="card"><h3>Cambio de batería</h3><p>Mejora de autonomía con baterías de alto rendimiento.</p></article>
-          <article class="card"><h3>Conector de carga</h3><p>Arreglo del puerto para carga estable y segura.</p></article>
-          <article class="card"><h3>Reparación de cámara</h3><p>Solución de enfoque, nitidez o fallo total de cámara.</p></article>
-          <article class="card"><h3>Daños por agua</h3><p>Limpieza técnica y recuperación tras contacto con líquidos.</p></article>
+          <article class="card">
+            <h3>Reparación de pantalla</h3>
+            <p>Sustitución precisa de pantallas rotas o sin respuesta táctil.</p>
+            <p class="price-tag">Desde 69 EUR</p>
+            <button class="btn btn-secondary service-toggle" type="button" data-target="servicio-pantalla">Ver más información</button>
+            <div id="servicio-pantalla" class="service-extra" hidden>
+              <p>Cambio de pantalla completa (LCD/OLED) con test de brillo, táctil y sensores.</p>
+              <p>Tiempo estimado: 45-90 min según modelo.</p>
+              <p>Incluye 3 meses de garantía sobre la reparación.</p>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Cambio de batería</h3>
+            <p>Mejora de autonomía con baterías de alto rendimiento.</p>
+            <p class="price-tag">Desde 49 EUR</p>
+            <button class="btn btn-secondary service-toggle" type="button" data-target="servicio-bateria">Ver más información</button>
+            <div id="servicio-bateria" class="service-extra" hidden>
+              <p>Sustitución de batería con comprobación de ciclos y calibración inicial.</p>
+              <p>Tiempo estimado: 30-60 min.</p>
+              <p>Incluye revisión de carga y consumo energético.</p>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Conector de carga</h3>
+            <p>Arreglo del puerto para carga estable y segura.</p>
+            <p class="price-tag">Desde 39 EUR</p>
+            <button class="btn btn-secondary service-toggle" type="button" data-target="servicio-conector">Ver más información</button>
+            <div id="servicio-conector" class="service-extra" hidden>
+              <p>Limpieza técnica o sustitución completa del módulo de carga.</p>
+              <p>Tiempo estimado: 40-75 min.</p>
+              <p>Comprobación de carga rápida y conexión de datos.</p>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Reparación de cámara</h3>
+            <p>Solución de enfoque, nitidez o fallo total de cámara.</p>
+            <p class="price-tag">Desde 55 EUR</p>
+            <button class="btn btn-secondary service-toggle" type="button" data-target="servicio-camara">Ver más información</button>
+            <div id="servicio-camara" class="service-extra" hidden>
+              <p>Diagnóstico de cámara frontal/trasera, autoenfoque, estabilizador y cristal.</p>
+              <p>Tiempo estimado: 45-80 min.</p>
+              <p>Pruebas en foto y video antes de la entrega.</p>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Daños por agua</h3>
+            <p>Limpieza técnica y recuperación tras contacto con líquidos.</p>
+            <p class="price-tag">Desde 59 EUR</p>
+            <button class="btn btn-secondary service-toggle" type="button" data-target="servicio-agua">Ver más información</button>
+            <div id="servicio-agua" class="service-extra" hidden>
+              <p>Desmontaje completo, baño químico y desoxidación de placa.</p>
+              <p>Tiempo estimado: 24-48 h según daño interno.</p>
+              <p>Presupuesto final tras diagnóstico interno.</p>
+            </div>
+          </article>
         </div>
         <p class="badge">Diagnóstico gratuito en todas las reparaciones</p>
+        <p class="section-subtitle">Precios orientativos sujetos a modelo y disponibilidad de repuesto.</p>
       </div>
     </section>
   </main>
@@ -50,7 +101,7 @@
     <div class="container footer-grid">
       <p>FixLab S.L. - Reparación de móviles en Valladolid</p>
       <nav class="footer-links" aria-label="Enlaces del pie">
-        <a href="index.html">Inicio</a><a href="servicios.html">Servicios</a><a href="tiendas.html">Tiendas</a><a href="reacondicionados.html">Reacondicionados</a><a href="contacto.html">Contacto</a>
+        <a href="index.html">Inicio</a><a href="servicios.html">Servicios</a><a href="tiendas.html">Tiendas físicas</a><a href="tienda.html">Tienda</a><a href="contacto.html">Contacto</a><a href="aviso-legal.html">Aviso legal</a><a href="politica-privacidad.html">Privacidad</a><a href="politica-cookies.html">Cookies</a>
       </nav>
       <p>Dos tiendas en Valladolid: Río Shopping y Calle Acibelas, 9<br>© <span id="year"></span> FixLab S.L.</p>
     </div>
