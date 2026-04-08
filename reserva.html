@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserva tu cita | FixLab S.L.</title>
+  <meta name="description" content="Reserva tu reparación de móvil en FixLab S.L. de forma rápida y sencilla.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="container nav">
+      <a class="brand" href="index.html">
+        <img src="Logo_FixLab.png" alt="Logo FixLab" class="brand-logo">
+        <span>FixLab S.L.</span>
+      </a>
+      <button id="menuToggle" class="menu-toggle" aria-label="Abrir menú">Menú</button>
+      <ul id="navLinks" class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="servicios.html">Servicios</a></li>
+        <li><a href="tiendas.html">Tiendas</a></li>
+        <li><a href="reacondicionados.html">Reacondicionados</a></li>
+        <li><a href="contacto.html">Contacto</a></li>
+      </ul>
+      <a class="btn btn-login" href="login.html">Iniciar sesión</a>
+    </nav>
+  </header>
+
+  <main class="page-main">
+    <section class="section section-soft">
+      <div class="container">
+        <h1 class="section-title">Reserva tu reparación</h1>
+        <p class="section-subtitle">Déjanos tus datos y te llamamos para confirmar día y hora.</p>
+        <form id="reservationForm" class="contact-form" novalidate>
+          <div class="field">
+            <label for="name">Nombre</label>
+            <input id="name" name="name" type="text" required>
+          </div>
+          <div class="field">
+            <label for="phone">Teléfono</label>
+            <input id="phone" name="phone" type="tel" required>
+          </div>
+          <div class="field field-full">
+            <label for="service">Servicio</label>
+            <input id="service" name="service" type="text" placeholder="Ej: Reparación de pantalla" required>
+          </div>
+          <div class="field field-full">
+            <label for="message">Detalles (opcional)</label>
+            <textarea id="message" name="message" rows="4" placeholder="Modelo del móvil, fallo, urgencia, etc."></textarea>
+          </div>
+          <button class="btn btn-primary" type="submit">Enviar reserva</button>
+          <p id="reservationMessage" class="form-message" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <p>FixLab S.L. - Reparación de móviles en Valladolid</p>
+      <nav class="footer-links" aria-label="Enlaces del pie">
+        <a href="index.html">Inicio</a><a href="servicios.html">Servicios</a><a href="tiendas.html">Tiendas</a><a href="reacondicionados.html">Reacondicionados</a><a href="contacto.html">Contacto</a>
+      </nav>
+      <p>Dos tiendas en Valladolid: Río Shopping y Calle Acibelas, 9<br>© <span id="year"></span> FixLab S.L.</p>
+    </div>
+  </footer>
+  <a class="whatsapp-float" href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">WhatsApp</a>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
