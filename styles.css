@@ -322,6 +322,10 @@ body.page-leaving {
   gap: 1rem;
 }
 
+.service-cards-grid {
+  gap: 1.6rem;
+}
+
 .card,
 .shop-card {
   background: var(--surface);
