@@ -33,6 +33,7 @@ const productReservationForm = document.getElementById("productReservationForm")
 const productReservationMessage = document.getElementById("productReservationMessage");
 const productReservationSummary = document.getElementById("productReservationSummary");
 const productReservationQty = document.getElementById("productReservationQty");
+const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const SESSION_KEY = "fixlabSessionUser";
 const USERS_KEY = "fixlabUsers";
 const EMAILJS_PUBLIC_KEY = "OqZOnvQHedOZwpT5m";
@@ -135,6 +136,89 @@ const PRODUCT_CATALOG = {
 window.requestAnimationFrame(() => {
   document.body.classList.add("page-ready");
 });
+
+const brandTitle = document.querySelector(".brand span");
+if (brandTitle && brandTitle.textContent) {
+  brandTitle.setAttribute("data-glitch", "");
+  brandTitle.setAttribute("data-text", brandTitle.textContent.trim());
+}
+
+const heroTitle = document.querySelector(".hero h1");
+if (heroTitle && heroTitle.textContent) {
+  heroTitle.setAttribute("data-glitch", "");
+  heroTitle.setAttribute("data-text", heroTitle.textContent.trim());
+}
+
+const heroPhoneImage = document.getElementById("heroPhoneImage");
+if (heroPhoneImage && !reducedMotionQuery.matches) {
+  const heroPhoneSequence = [
+    {
+      src: "Imagenes%20tienda/Foto_s24.png",
+      alt: "Samsung Galaxy S24 Ultra reacondicionado en FixLab"
+    },
+    {
+      src: "samsung_galaxy_s26_ultra_5g_morado_Frontback.webp",
+      alt: "Samsung Galaxy S26 Ultra en color morado en FixLab"
+    },
+    {
+      src: "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13t.jpg",
+      alt: "Xiaomi 13T reacondicionado en FixLab"
+    },
+    {
+      src: "Imagenes%20tienda/iPhone-14-pro.jpg",
+      alt: "iPhone 14 Pro en exposición de FixLab"
+    },
+    {
+      src: "Imagenes%20tienda/Nothing_Phone-3.png",
+      alt: "Nothing Phone 3 en exposición de FixLab"
+    }
+  ];
+
+  let heroPhoneIndex = 0;
+  const triggerHeroPhoneSwitch = () => {
+    heroPhoneImage.classList.add("is-switching");
+
+    window.setTimeout(() => {
+      heroPhoneIndex = (heroPhoneIndex + 1) % heroPhoneSequence.length;
+      const nextPhone = heroPhoneSequence[heroPhoneIndex];
+      heroPhoneImage.src = nextPhone.src;
+      heroPhoneImage.alt = nextPhone.alt;
+    }, 160);
+
+    window.setTimeout(() => {
+      heroPhoneImage.classList.remove("is-switching");
+    }, 380);
+
+    const nextDelay = 4200 + Math.floor(Math.random() * 2800);
+    window.setTimeout(triggerHeroPhoneSwitch, nextDelay);
+  };
+
+  window.setTimeout(triggerHeroPhoneSwitch, 3400);
+}
+
+if (!reducedMotionQuery.matches && window.matchMedia("(pointer: fine)").matches && window.innerWidth > 980) {
+  const cursorDot = document.createElement("div");
+  cursorDot.className = "cyber-cursor";
+  document.body.appendChild(cursorDot);
+
+  let targetX = window.innerWidth / 2;
+  let targetY = window.innerHeight / 2;
+  let currentX = targetX;
+  let currentY = targetY;
+
+  document.addEventListener("mousemove", (event) => {
+    targetX = event.clientX;
+    targetY = event.clientY;
+  });
+
+  const followCursor = () => {
+    currentX += (targetX - currentX) * 0.18;
+    currentY += (targetY - currentY) * 0.18;
+    cursorDot.style.transform = `translate(${currentX - 5}px, ${currentY - 5}px)`;
+    window.requestAnimationFrame(followCursor);
+  };
+  window.requestAnimationFrame(followCursor);
+}
 
 if (window.emailjs) {
   window.emailjs.init({
