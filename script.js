@@ -39,6 +39,9 @@ const USERS_KEY = "fixlabUsers";
 const EMAILJS_PUBLIC_KEY = "OqZOnvQHedOZwpT5m";
 const EMAILJS_SERVICE_ID = "service_hzb1vrj";
 const EMAILJS_TEMPLATE_ID = "template_wxzr0ri";
+const FIXLAB_TARGET_EMAIL = "FixLabCyL@gmail.com";
+const WHATSAPP_DEFAULT_URL =
+  "https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n.";
 const PRODUCT_CATALOG = {
   "iphone-12": {
     name: "iPhone 12 reacondicionado",
@@ -137,6 +140,35 @@ window.requestAnimationFrame(() => {
   document.body.classList.add("page-ready");
 });
 
+const ensureWhatsAppButtonVisible = () => {
+  let whatsappButton = document.querySelector(".whatsapp-float");
+  if (!whatsappButton) {
+    whatsappButton = document.createElement("a");
+    whatsappButton.className = "whatsapp-float";
+    whatsappButton.href = WHATSAPP_DEFAULT_URL;
+    whatsappButton.target = "_blank";
+    whatsappButton.rel = "noopener noreferrer";
+    whatsappButton.setAttribute("aria-label", "Contactar por WhatsApp");
+    whatsappButton.textContent = "WhatsApp";
+    document.body.appendChild(whatsappButton);
+  }
+
+  whatsappButton.hidden = false;
+  whatsappButton.style.position = "fixed";
+  whatsappButton.style.right = "18px";
+  whatsappButton.style.bottom = "18px";
+  whatsappButton.style.left = "auto";
+  whatsappButton.style.top = "auto";
+  whatsappButton.style.zIndex = "10001";
+  whatsappButton.style.display = "inline-flex";
+  whatsappButton.style.visibility = "visible";
+  whatsappButton.style.opacity = "1";
+
+  document.body.appendChild(whatsappButton);
+};
+
+ensureWhatsAppButtonVisible();
+
 const brandTitle = document.querySelector(".brand span");
 if (brandTitle && brandTitle.textContent) {
   brandTitle.setAttribute("data-glitch", "");
@@ -196,15 +228,41 @@ if (heroPhoneImage && !reducedMotionQuery.matches) {
   window.setTimeout(triggerHeroPhoneSwitch, 3400);
 }
 
+if (!reducedMotionQuery.matches) {
+  const floatingItems = document.querySelectorAll(".card, .shop-card, .stat-card");
+  floatingItems.forEach((item, index) => {
+    item.classList.add("motion-float");
+    item.style.animationDelay = `${(index % 6) * 0.18}s`;
+  });
+
+  const heroVisual = document.querySelector(".hero-visual");
+  if (heroVisual) {
+    document.addEventListener("mousemove", (event) => {
+      const { innerWidth, innerHeight } = window;
+      const offsetX = (event.clientX / innerWidth - 0.5) * 7;
+      const offsetY = (event.clientY / innerHeight - 0.5) * 7;
+      heroVisual.style.transform = `perspective(900px) rotateY(${offsetX}deg) rotateX(${-offsetY}deg)`;
+    });
+
+    document.addEventListener("mouseleave", () => {
+      heroVisual.style.transform = "perspective(900px) rotateY(0deg) rotateX(0deg)";
+    });
+  }
+}
+
 if (!reducedMotionQuery.matches && window.matchMedia("(pointer: fine)").matches && window.innerWidth > 980) {
   const cursorDot = document.createElement("div");
   cursorDot.className = "cyber-cursor";
-  document.body.appendChild(cursorDot);
+  document.documentElement.appendChild(cursorDot);
+  document.documentElement.classList.add("custom-cursor-active");
+  document.body.classList.add("custom-cursor-active");
 
   let targetX = window.innerWidth / 2;
   let targetY = window.innerHeight / 2;
   let currentX = targetX;
   let currentY = targetY;
+  const followStrength = 0.42;
+  const snapDistance = 0.35;
 
   document.addEventListener("mousemove", (event) => {
     targetX = event.clientX;
@@ -212,8 +270,14 @@ if (!reducedMotionQuery.matches && window.matchMedia("(pointer: fine)").matches 
   });
 
   const followCursor = () => {
-    currentX += (targetX - currentX) * 0.18;
-    currentY += (targetY - currentY) * 0.18;
+    currentX += (targetX - currentX) * followStrength;
+    currentY += (targetY - currentY) * followStrength;
+    if (Math.abs(targetX - currentX) < snapDistance) {
+      currentX = targetX;
+    }
+    if (Math.abs(targetY - currentY) < snapDistance) {
+      currentY = targetY;
+    }
     cursorDot.style.transform = `translate(${currentX - 5}px, ${currentY - 5}px)`;
     window.requestAnimationFrame(followCursor);
   };
@@ -353,6 +417,7 @@ if (contactForm && formMessage && window.emailjs) {
       await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         from_name: name,
         from_email: email,
+        to_email: FIXLAB_TARGET_EMAIL,
         phone,
         service,
         message,
@@ -393,7 +458,8 @@ if (reservationForm && reservationMessage && window.emailjs) {
     try {
       await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         from_name: name,
-        from_email: "reserva@fixlab.local",
+        from_email: FIXLAB_TARGET_EMAIL,
+        to_email: FIXLAB_TARGET_EMAIL,
         phone,
         service,
         message: message || "Sin detalles adicionales.",
@@ -625,6 +691,7 @@ if (productReservationForm && productReservationMessage && productReservationSum
         await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
           from_name: name,
           from_email: email,
+          to_email: FIXLAB_TARGET_EMAIL,
           phone,
           service: `Reserva de producto: ${product.name}`,
           message: `Cantidad: ${qty}. Total estimado: ${total.toFixed(2)} EUR. ${message || ""}`.trim(),
