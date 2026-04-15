@@ -40,16 +40,58 @@
             <input id="name" name="name" type="text" required>
           </div>
           <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required>
+          </div>
+          <div class="field">
             <label for="phone">Teléfono</label>
             <input id="phone" name="phone" type="tel" required>
           </div>
-          <div class="field field-full">
+          <div class="field">
+            <label for="deviceBrand">Marca del móvil</label>
+            <select id="deviceBrand" name="deviceBrand" required>
+              <option value="">Selecciona marca</option>
+              <option>Apple (iPhone)</option>
+              <option>Samsung</option>
+              <option>Xiaomi</option>
+              <option>Huawei</option>
+              <option>OPPO</option>
+              <option>Realme</option>
+              <option>Otra marca</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="service">Servicio</label>
-            <input id="service" name="service" type="text" placeholder="Ej: Reparación de pantalla" required>
+            <select id="service" name="service" required>
+              <option value="">Selecciona un servicio</option>
+              <option>Reparación de pantalla</option>
+              <option>Cambio de batería</option>
+              <option>Reparación de conector de carga</option>
+              <option>Reparación de cámara</option>
+              <option>Reparación por daños de agua</option>
+              <option>Diagnóstico gratuito</option>
+              <option>Otro servicio</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="urgency">Prioridad</label>
+            <select id="urgency" name="urgency" required>
+              <option value="">Selecciona prioridad</option>
+              <option>Normal (24-48h)</option>
+              <option>Urgente (mismo día si es posible)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="preferredStore">Tienda preferida</label>
+            <select id="preferredStore" name="preferredStore" required>
+              <option value="">Selecciona tienda</option>
+              <option>FixLab Río Shopping</option>
+              <option>FixLab Centro</option>
+            </select>
           </div>
           <div class="field field-full">
-            <label for="message">Detalles (opcional)</label>
-            <textarea id="message" name="message" rows="4" placeholder="Modelo del móvil, fallo, urgencia, etc."></textarea>
+            <label for="message">Descripción de la causa</label>
+            <textarea id="message" name="message" rows="5" placeholder="Modelo exacto, fallo detectado, cuándo empezó y cualquier detalle útil." required></textarea>
           </div>
           <button class="btn btn-primary" type="submit">Enviar reserva</button>
           <p id="reservationMessage" class="form-message" aria-live="polite"></p>
@@ -68,7 +110,6 @@
     </div>
   </footer>
   <a class="whatsapp-float" href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">WhatsApp</a>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

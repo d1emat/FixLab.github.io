@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FixLab Río Shopping | Tiendas físicas</title>
-  <meta name="description" content="Información de la tienda FixLab en Río Shopping, Valladolid.">
+  <title>Seguimiento de reparación | FixLab S.L.</title>
+  <meta name="description" content="Consulta el estado de tu reparación en FixLab S.L.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
       <ul id="navLinks" class="nav-links">
         <li><a href="index.html">Inicio</a></li>
         <li><a href="servicios.html">Servicios</a></li>
-        <li><a href="tiendas.html" class="active">Tiendas físicas</a></li>
+        <li><a href="tiendas.html">Tiendas físicas</a></li>
         <li><a href="tienda.html">Tienda</a></li>
         <li><a href="contacto.html">Contacto</a></li>
       </ul>
@@ -32,18 +32,25 @@
   <main class="page-main">
     <section class="section section-soft">
       <div class="container">
-        <p><a class="btn btn-secondary" href="tiendas.html">Volver atrás</a></p>
-        <h1 class="section-title">FixLab Río Shopping</h1>
-        <p class="section-subtitle">Punto de reparación express en centro comercial, ideal para atención rápida sin cita previa.</p>
+        <h1 class="section-title">Seguimiento de reparación</h1>
+        <p class="section-subtitle">
+          Cuenta activa: <strong id="trackingEmail">-</strong>. Introduce tu código y teléfono para consultar el estado.
+        </p>
 
-        <article class="shop-card">
-          <img src="Kiosko Rio Shopping.webp" alt="Kiosko FixLab en Río Shopping" class="card-image">
-          <p><strong>Dirección:</strong> Centro Comercial Río Shopping, Av. de Madrid, 25, Valladolid.</p>
-          <p><strong>Horario:</strong> Lunes a sábado de 10:00 a 22:00.</p>
-          <p><strong>Servicios destacados:</strong> Diagnóstico gratuito, cambio de pantalla, batería y conectores.</p>
-          <p><strong>Cómo llegar:</strong> Entrada principal junto a la zona de restauración.</p>
-          <iframe title="Mapa de FixLab Río Shopping" src="https://www.google.com/maps?q=R%C3%ADo%20Shopping%20Av.%20de%20Madrid%2025%20Valladolid&output=embed" loading="lazy"></iframe>
-        </article>
+        <form id="trackingForm" class="contact-form" novalidate>
+          <div class="field">
+            <label for="trackingCode">Código de reparación</label>
+            <input id="trackingCode" name="trackingCode" type="text" placeholder="Ejemplo: FL-2026-1842" required>
+          </div>
+          <div class="field">
+            <label for="trackingPhone">Teléfono asociado</label>
+            <input id="trackingPhone" name="trackingPhone" type="tel" placeholder="Ejemplo: 600123123" required>
+          </div>
+          <button class="btn btn-primary" type="submit">Consultar estado</button>
+          <p id="trackingMessage" class="form-message" aria-live="polite"></p>
+        </form>
+
+        <article id="trackingResult" class="card tracking-result" hidden></article>
       </div>
     </section>
   </main>
@@ -57,6 +64,7 @@
       <p>Dos tiendas en Valladolid: Río Shopping y Calle Acibelas, 9<br>© <span id="year"></span> FixLab S.L.</p>
     </div>
   </footer>
+
   <a class="whatsapp-float" href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">WhatsApp</a>
   <script src="script.js"></script>
 </body>

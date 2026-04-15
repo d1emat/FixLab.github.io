@@ -128,15 +128,37 @@ body.custom-cursor-active * {
   text-shadow: 0 0 10px rgba(0, 255, 204, 0.42);
 }
 
+.nav-auth-item {
+  display: none;
+}
+
 .menu-toggle {
   display: none;
   background: #1e2338;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.45rem 0.75rem;
+  width: 44px;
+  height: 40px;
+  padding: 0;
   color: var(--text);
   font-weight: 600;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-indent: -9999px;
+}
+
+.menu-toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 99px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor;
 }
 
 .btn {
@@ -219,7 +241,7 @@ body.custom-cursor-active * {
 }
 
 .page-main {
-  padding: 4rem 0;
+  padding: 0;
 }
 
 .hero-grid {
@@ -576,6 +598,10 @@ body.custom-cursor-active * {
 
 .service-extra p + p {
   margin-top: 0.45rem;
+}
+
+.tracking-result {
+  margin-top: 1rem;
 }
 
 .store-layout {
@@ -1172,6 +1198,10 @@ textarea:focus {
     font-size: 1rem;
   }
 
+  .page-main {
+    padding-top: 0;
+  }
+
   .hero h1 {
     font-size: clamp(2.1rem, 8vw, 2.8rem);
   }
@@ -1183,6 +1213,10 @@ textarea:focus {
 
   .hero-visual {
     min-height: 300px;
+  }
+
+  .home-page .hero-visual {
+    display: none;
   }
 
   .card-image {
@@ -1209,6 +1243,10 @@ textarea:focus {
     display: none;
     flex-direction: column;
     box-shadow: var(--shadow);
+  }
+
+  .nav-auth-item {
+    display: list-item;
   }
 
   .nav-links.show {

@@ -40,8 +40,33 @@ const EMAILJS_PUBLIC_KEY = "OqZOnvQHedOZwpT5m";
 const EMAILJS_SERVICE_ID = "service_hzb1vrj";
 const EMAILJS_TEMPLATE_ID = "template_wxzr0ri";
 const FIXLAB_TARGET_EMAIL = "FixLabCyL@gmail.com";
+const WEB3FORMS_ACCESS_KEY = "030271c2-e0d6-4f8c-97e1-6b3d78ffc154";
+const WEB3FORMS_API_URL = "https://api.web3forms.com/submit";
+const RESERVATION_TICKETS_KEY = "fixlabReservationTickets";
 const WHATSAPP_DEFAULT_URL =
   "https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n.";
+
+const generateOrderNumber = () => {
+  const timestampChunk = Date.now().toString(36).slice(-4).toUpperCase();
+  const randomChunk = Math.floor(100000 + Math.random() * 900000).toString();
+  return `FL-${timestampChunk}-${randomChunk}`;
+};
+
+const normalizePhoneValue = (value) => value.replace(/\D/g, "");
+
+const getStoredReservationTickets = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RESERVATION_TICKETS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveStoredReservationTickets = (tickets) => {
+  localStorage.setItem(RESERVATION_TICKETS_KEY, JSON.stringify(tickets));
+};
+
 const PRODUCT_CATALOG = {
   "iphone-12": {
     name: "iPhone 12 reacondicionado",
@@ -168,6 +193,99 @@ const ensureWhatsAppButtonVisible = () => {
 };
 
 ensureWhatsAppButtonVisible();
+const currentSessionUser = localStorage.getItem(SESSION_KEY);
+
+const getCurrentPageFileName = () => (window.location.pathname.split("/").pop() || "").toLowerCase();
+
+const getSafeInternalPath = (rawPath) => {
+  if (!rawPath) {
+    return "";
+  }
+  try {
+    const candidate = new URL(rawPath, window.location.origin);
+    if (candidate.origin !== window.location.origin) {
+      return "";
+    }
+    return `${candidate.pathname}${candidate.search}${candidate.hash}`;
+  } catch {
+    return "";
+  }
+};
+
+const DETAIL_PAGE_PATTERN = /^(servicio-[^/]+|tienda-(?!s\.html)[^/]+)\.html$/i;
+
+const attachReturnOriginToDetailLinks = () => {
+  const detailLinks = document.querySelectorAll('a[href$=".html"]');
+  if (detailLinks.length === 0) {
+    return;
+  }
+
+  detailLinks.forEach((link) => {
+    const href = link.getAttribute("href");
+    if (!href) {
+      return;
+    }
+    if (href.startsWith("http") || href.startsWith("#")) {
+      return;
+    }
+
+    let targetUrl;
+    try {
+      targetUrl = new URL(href, window.location.href);
+    } catch {
+      return;
+    }
+
+    const fileName = (targetUrl.pathname.split("/").pop() || "").toLowerCase();
+    if (!DETAIL_PAGE_PATTERN.test(fileName)) {
+      return;
+    }
+
+    const parentSection = link.closest("section[id]");
+    const sectionHash = parentSection ? `#${parentSection.id}` : "";
+    const originPath = `${window.location.pathname}${window.location.search}${sectionHash || window.location.hash}`;
+    targetUrl.searchParams.set("from", originPath);
+    link.setAttribute("href", `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`);
+  });
+};
+
+const setupSmartBackLinks = () => {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get("from");
+  if (!from) {
+    return;
+  }
+
+  const backLinks = document.querySelectorAll('a[href="servicios.html"], a[href="tiendas.html"]');
+  if (backLinks.length === 0) {
+    return;
+  }
+
+  let safeBackUrl;
+  try {
+    safeBackUrl = new URL(from, window.location.origin);
+  } catch {
+    return;
+  }
+
+  if (safeBackUrl.origin !== window.location.origin) {
+    return;
+  }
+
+  const relativeBackUrl = `${safeBackUrl.pathname}${safeBackUrl.search}${safeBackUrl.hash}`;
+  backLinks.forEach((link) => {
+    if (link.textContent && link.textContent.toLowerCase().includes("volver")) {
+      link.setAttribute("href", relativeBackUrl);
+    }
+  });
+};
+
+attachReturnOriginToDetailLinks();
+setupSmartBackLinks();
+
+if (getCurrentPageFileName() === "seguimiento.html" && !currentSessionUser) {
+  window.location.href = "login.html?redirect=seguimiento.html";
+}
 
 const brandTitle = document.querySelector(".brand span");
 if (brandTitle && brandTitle.textContent) {
@@ -295,8 +413,7 @@ if (yearElement) {
 }
 
 if (loginButton) {
-  const currentUser = localStorage.getItem(SESSION_KEY);
-  if (currentUser) {
+  if (currentSessionUser) {
     loginButton.textContent = "Cerrar sesión";
     loginButton.setAttribute("href", "#");
     loginButton.addEventListener("click", (event) => {
@@ -308,6 +425,61 @@ if (loginButton) {
     loginButton.textContent = "Iniciar sesión";
     loginButton.setAttribute("href", "login.html");
   }
+}
+
+if (navLinks && currentSessionUser && !navLinks.querySelector('a[href="seguimiento.html"]')) {
+  const trackingItem = document.createElement("li");
+  const trackingLink = document.createElement("a");
+  trackingLink.href = "seguimiento.html";
+  trackingLink.textContent = "Seguimiento";
+  if (getCurrentPageFileName() === "seguimiento.html") {
+    trackingLink.classList.add("active");
+  }
+  trackingItem.appendChild(trackingLink);
+
+  const contactItem = navLinks.querySelector('a[href="contacto.html"]')?.closest("li");
+  if (contactItem) {
+    navLinks.insertBefore(trackingItem, contactItem);
+  } else {
+    navLinks.appendChild(trackingItem);
+  }
+}
+
+if (navLinks && !navLinks.querySelector('a[href="reserva.html"]')) {
+  const reserveItem = document.createElement("li");
+  const reserveLink = document.createElement("a");
+  reserveLink.href = "reserva.html";
+  reserveLink.textContent = "Reserva";
+  if (getCurrentPageFileName() === "reserva.html") {
+    reserveLink.classList.add("active");
+  }
+  reserveItem.appendChild(reserveLink);
+
+  const contactItem = navLinks.querySelector('a[href="contacto.html"]')?.closest("li");
+  if (contactItem) {
+    navLinks.insertBefore(reserveItem, contactItem);
+  } else {
+    navLinks.appendChild(reserveItem);
+  }
+}
+
+if (navLinks && !navLinks.querySelector(".nav-auth-item")) {
+  const authItem = document.createElement("li");
+  authItem.className = "nav-auth-item";
+  const authLink = document.createElement("a");
+  authLink.href = currentSessionUser ? "#" : "login.html";
+  authLink.textContent = currentSessionUser ? "Cerrar sesión" : "Iniciar sesión";
+
+  if (currentSessionUser) {
+    authLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      localStorage.removeItem(SESSION_KEY);
+      window.location.href = "index.html";
+    });
+  }
+
+  authItem.appendChild(authLink);
+  navLinks.appendChild(authItem);
 }
 
 if (menuToggle && navLinks) {
@@ -357,8 +529,84 @@ if (loginForm && loginMessage) {
     loginMessage.textContent = "Inicio de sesión correcto. Redirigiendo...";
     loginMessage.style.color = "#3d63db";
     window.setTimeout(() => {
-      window.location.href = "index.html";
+      const redirectFromQuery = new URLSearchParams(window.location.search).get("redirect");
+      const safeRedirect = getSafeInternalPath(redirectFromQuery);
+      window.location.href = safeRedirect || "index.html";
     }, 600);
+  });
+}
+
+const trackingForm = document.getElementById("trackingForm");
+const trackingMessage = document.getElementById("trackingMessage");
+const trackingResult = document.getElementById("trackingResult");
+const trackingEmail = document.getElementById("trackingEmail");
+const TRACKING_STATES = [
+  "Solicitud recibida",
+  "Diagnóstico en curso",
+  "Esperando repuesto",
+  "Reparación en proceso",
+  "Pruebas finales",
+  "Lista para recoger"
+];
+
+if (trackingEmail && currentSessionUser) {
+  trackingEmail.textContent = currentSessionUser;
+}
+
+if (trackingForm && trackingMessage && trackingResult) {
+  const storedTickets = getStoredReservationTickets();
+  if (storedTickets.length > 0) {
+    const latestTicket = currentSessionUser
+      ? storedTickets.find((ticket) => ticket.email === currentSessionUser) || storedTickets[0]
+      : storedTickets[0];
+    const codeInput = trackingForm.querySelector("#trackingCode");
+    if (codeInput instanceof HTMLInputElement && latestTicket && latestTicket.orderNumber) {
+      codeInput.value = latestTicket.orderNumber;
+    }
+  }
+
+  trackingForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(trackingForm);
+    const code = (formData.get("trackingCode") || "").toString().trim().toUpperCase();
+    const phone = (formData.get("trackingPhone") || "").toString().trim();
+    const normalizedPhone = normalizePhoneValue(phone);
+
+    if (code.length < 4 || normalizedPhone.length === 0) {
+      trackingMessage.textContent = "Introduce un código válido y un teléfono correcto.";
+      trackingMessage.style.color = "#b1416f";
+      trackingResult.hidden = true;
+      return;
+    }
+
+    const ticket = getStoredReservationTickets().find((item) => {
+      const sameCode = (item.orderNumber || "").toUpperCase() === code;
+      const samePhone = normalizePhoneValue(item.phone || "") === normalizedPhone;
+      return sameCode && samePhone;
+    });
+
+    if (!ticket) {
+      trackingMessage.textContent = "No encontramos una reserva con ese código y teléfono.";
+      trackingMessage.style.color = "#b1416f";
+      trackingResult.hidden = true;
+      return;
+    }
+
+    const checksum = code.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const state = TRACKING_STATES[checksum % TRACKING_STATES.length];
+    const estimatedDays = 1 + ((checksum + normalizedPhone.length) % 4);
+
+    trackingResult.hidden = false;
+    trackingResult.innerHTML = `
+      <h3>Estado actual</h3>
+      <p><strong>Código:</strong> ${code}</p>
+      <p><strong>Servicio:</strong> ${ticket.service || "No disponible"}</p>
+      <p><strong>Tienda:</strong> ${ticket.store || "No disponible"}</p>
+      <p><strong>Estado:</strong> ${state}</p>
+      <p><strong>Estimación:</strong> ${estimatedDays} día(s) para finalizar.</p>
+    `;
+    trackingMessage.textContent = "Seguimiento actualizado.";
+    trackingMessage.style.color = "#3d63db";
   });
 }
 
@@ -437,17 +685,24 @@ if (contactForm && formMessage && window.emailjs) {
   });
 }
 
-if (reservationForm && reservationMessage && window.emailjs) {
+if (reservationForm && reservationMessage) {
   reservationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(reservationForm);
     const name = (formData.get("name") || "").toString().trim();
+    const email = (formData.get("email") || "").toString().trim();
     const phone = (formData.get("phone") || "").toString().trim();
+    const deviceBrand = (formData.get("deviceBrand") || "").toString().trim();
     const service = (formData.get("service") || "").toString().trim();
+    const urgency = (formData.get("urgency") || "").toString().trim();
+    const preferredStore = (formData.get("preferredStore") || "").toString().trim();
     const message = (formData.get("message") || "").toString().trim();
+    const orderNumber = generateOrderNumber();
+    const serviceSummary = `${service} · ${deviceBrand} · ${urgency} · ${preferredStore}`;
+    const cause = message || "Sin descripcion adicional.";
 
-    if (!name || !phone || !service) {
-      reservationMessage.textContent = "Completa nombre, teléfono y servicio.";
+    if (!name || !email || !phone || !deviceBrand || !service || !urgency || !preferredStore || !message) {
+      reservationMessage.textContent = "Completa todos los campos de la reserva.";
       reservationMessage.style.color = "#b1416f";
       return;
     }
@@ -456,17 +711,53 @@ if (reservationForm && reservationMessage && window.emailjs) {
     reservationMessage.style.color = "#3d63db";
 
     try {
-      await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        from_name: name,
-        from_email: FIXLAB_TARGET_EMAIL,
-        to_email: FIXLAB_TARGET_EMAIL,
-        phone,
-        service,
-        message: message || "Sin detalles adicionales.",
-        form_type: "Reserva"
+      if (!WEB3FORMS_ACCESS_KEY) {
+        reservationMessage.textContent = "Falta configurar WEB3FORMS_ACCESS_KEY en script.js.";
+        reservationMessage.style.color = "#b1416f";
+        return;
+      }
+
+      const formPayload = new FormData();
+      formPayload.append("access_key", WEB3FORMS_ACCESS_KEY);
+      formPayload.append("subject", `Nueva reserva ${orderNumber} - ${service}`);
+      formPayload.append("from_name", "FixLab Web");
+      formPayload.append("name", name);
+      formPayload.append("email", email);
+      formPayload.append("phone", phone);
+      formPayload.append("service", serviceSummary);
+      formPayload.append("cause", cause);
+      formPayload.append("order_number", orderNumber);
+      formPayload.append("message", `Nueva reserva recibida.\nPedido: ${orderNumber}\nCliente: ${name}\nEmail: ${email}\nTelefono: ${phone}\nServicio: ${serviceSummary}\nCausa: ${cause}`);
+      formPayload.append("botcheck", "");
+      formPayload.append("replyto", email);
+      formPayload.append(
+        "autoresponse",
+        `Hola ${name}, hemos recibido tu solicitud. Tu ticket ${orderNumber} esta siendo procesado. Te contactaremos pronto.`
+      );
+      const response = await fetch(WEB3FORMS_API_URL, {
+        method: "POST",
+        body: formPayload
       });
-      reservationMessage.textContent = "Reserva enviada correctamente. Te contactaremos pronto.";
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error((result && result.message) || "No se pudo enviar el formulario.");
+      }
+
+      reservationMessage.textContent = `Reserva enviada correctamente. Tu numero de reserva es ${orderNumber}.`;
       reservationMessage.style.color = "#3d63db";
+      const reservationTickets = getStoredReservationTickets();
+      const nextTickets = [
+        {
+          orderNumber,
+          phone,
+          email,
+          service: serviceSummary,
+          store: preferredStore,
+          createdAt: new Date().toISOString()
+        },
+        ...reservationTickets.filter((ticket) => (ticket.orderNumber || "").toUpperCase() !== orderNumber)
+      ].slice(0, 30);
+      saveStoredReservationTickets(nextTickets);
       reservationForm.reset();
     } catch (error) {
       const reason =
@@ -484,14 +775,6 @@ if (contactForm && formMessage && !window.emailjs) {
     event.preventDefault();
     formMessage.textContent = "EmailJS no está cargado. Revisa internet o bloqueo del navegador.";
     formMessage.style.color = "#b1416f";
-  });
-}
-
-if (reservationForm && reservationMessage && !window.emailjs) {
-  reservationForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    reservationMessage.textContent = "EmailJS no está cargado. Revisa internet o bloqueo del navegador.";
-    reservationMessage.style.color = "#b1416f";
   });
 }
 
