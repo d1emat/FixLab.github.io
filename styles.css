@@ -161,6 +161,13 @@ body::before {
   height: auto;
   object-fit: contain;
   border-radius: 10px;
+  transition: filter 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.brand:hover .brand-logo {
+  filter: brightness(1.2) drop-shadow(0 0 20px rgba(245,230,66,0.8)) drop-shadow(0 0 40px rgba(245,230,66,0.4));
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(245,230,66,0.6), 0 0 60px rgba(245,230,66,0.3);
 }
 
 .brand {
