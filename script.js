@@ -34,9 +34,140 @@ const productReservationMessage = document.getElementById("productReservationMes
 const productReservationSummary = document.getElementById("productReservationSummary");
 const productReservationQty = document.getElementById("productReservationQty");
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-const SESSION_KEY = "fixlabSessionUser";
-const USERS_KEY = "fixlabUsers";
-const EMAILJS_PUBLIC_KEY = "OqZOnvQHedOZwpT5m";
+
+// Base de datos FixLab (localStorage)
+const FixLabDB = {
+  collections: {
+    USERS: 'fixlab_db_users',
+    RESERVATIONS: 'fixlab_db_reservations',
+    SESSION: 'fixlab_db_session',
+    SETTINGS: 'fixlab_db_settings'
+  },
+  
+  // Simulación de hash de contraseña (básico, no es seguridad real)
+  hashPassword: (password) => {
+    let hash = '';
+    for (let i = 0; i < password.length; i++) {
+      const char = password.charCodeAt(i);
+      hash += String.fromCharCode(((char * 7 + 13) % 94) + 33);
+    }
+    return btoa(hash + '_' + password.length);
+  },
+  
+  // Verificar contraseña
+  verifyPassword: (input, storedHash) => {
+    try {
+      const decoded = atob(storedHash).split('_');
+      const length = parseInt(decoded[1]);
+      return FixLabDB.hashPassword(input) === storedHash && input.length === length;
+    } catch {
+      return false;
+    }
+  },
+  
+  // Obtener colección
+  getCollection: (collectionName) => {
+    try {
+      const data = localStorage.getItem(collectionName);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+  
+  // Guardar colección
+  saveCollection: (collectionName, data) => {
+    localStorage.setItem(collectionName, JSON.stringify(data));
+  },
+  
+  // Insertar documento
+  insert: (collectionName, document) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    document._id = 'fl_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+    document.createdAt = new Date().toISOString();
+    collection.push(document);
+    FixLabDB.saveCollection(collectionName, collection);
+    return document;
+  },
+  
+  // Buscar documentos
+  find: (collectionName, query = {}) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    return collection.filter(item => {
+      return Object.keys(query).every(key => item[key] === query[key]);
+    });
+  },
+  
+  // Encontrar un documento
+  findOne: (collectionName, query = {}) => {
+    return FixLabDB.find(collectionName, query)[0] || null;
+  },
+  
+  // Actualizar documentos
+  update: (collectionName, query, updates) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    let updated = 0;
+    const newCollection = collection.map(item => {
+      if (Object.keys(query).every(key => item[key] === query[key])) {
+        updated++;
+        return { ...item, ...updates, updatedAt: new Date().toISOString() };
+      }
+      return item;
+    });
+    FixLabDB.saveCollection(collectionName, newCollection);
+    return updated;
+  },
+  
+  // Eliminar documentos
+  remove: (collectionName, query) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    const newCollection = collection.filter(item => {
+      return !Object.keys(query).every(key => item[key] === query[key]);
+    });
+    FixLabDB.saveCollection(collectionName, newCollection);
+    return collection.length - newCollection.length;
+  },
+  
+  // Inicializar base de datos (migrar datos antiguos si existen)
+  init: () => {
+    // Migrar usuarios antiguos
+    const oldUsers = localStorage.getItem('fixlabUsers');
+    if (oldUsers && !localStorage.getItem(FixLabDB.collections.USERS)) {
+      try {
+        const parsed = JSON.parse(oldUsers);
+        if (Array.isArray(parsed)) {
+          const migrated = parsed.map(user => ({
+            ...user,
+            _id: user._id || 'fl_migrated_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            passwordHash: user.password ? FixLabDB.hashPassword(user.password) : '',
+            createdAt: user.createdAt || new Date().toISOString()
+          }));
+          FixLabDB.saveCollection(FixLabDB.collections.USERS, migrated);
+          localStorage.removeItem('fixlabUsers');
+        }
+      } catch { /* ignore */ }
+    }
+    
+    // Migrar reservas antiguas
+    const oldReservations = localStorage.getItem('fixlabReservations');
+    if (oldReservations && !localStorage.getItem(FixLabDB.collections.RESERVATIONS)) {
+      try {
+        const parsed = JSON.parse(oldReservations);
+        if (Array.isArray(parsed)) {
+          FixLabDB.saveCollection(FixLabDB.collections.RESERVATIONS, parsed);
+          localStorage.removeItem('fixlabReservations');
+        }
+      } catch { /* ignore */ }
+    }
+  }
+};
+
+// Inicializar BD
+FixLabDB.init();
+
+const SESSION_KEY = FixLabDB.collections.SESSION;
+const USERS_KEY = FixLabDB.collections.USERS;
+const RESERVATION_TICKETS_KEY = FixLabDB.collections.RESERVATIONS;
 const EMAILJS_SERVICE_ID = "service_hzb1vrj";
 const EMAILJS_TEMPLATE_ID = "template_wxzr0ri";
 const FIXLAB_TARGET_EMAIL = "FixLabCyL@gmail.com";
@@ -192,7 +323,8 @@ const ensureWhatsAppButtonVisible = () => {
 };
 
 ensureWhatsAppButtonVisible();
-const currentSessionUser = localStorage.getItem(SESSION_KEY);
+const currentSession = FixLabDB.getCollection(FixLabDB.collections.SESSION)[0];
+const currentSessionUser = currentSession ? currentSession.email : null;
 
 const getCurrentPageFileName = () => (window.location.pathname.split("/").pop() || "").toLowerCase();
 
@@ -378,7 +510,8 @@ if (loginButton) {
     loginButton.setAttribute("href", "#");
     loginButton.addEventListener("click", (event) => {
       event.preventDefault();
-      localStorage.removeItem(SESSION_KEY);
+      FixLabDB.saveCollection(FixLabDB.collections.SESSION, []);
+      localStorage.removeItem("fixlabUserPhone");
       window.location.href = "index.html";
     });
   } else {
@@ -433,7 +566,8 @@ if (navLinks && !navLinks.querySelector(".nav-auth-item")) {
   if (currentSessionUser) {
     authLink.addEventListener("click", (event) => {
       event.preventDefault();
-      localStorage.removeItem(SESSION_KEY);
+      FixLabDB.saveCollection(FixLabDB.collections.SESSION, []);
+      localStorage.removeItem("fixlabUserPhone");
       window.location.href = "index.html";
     });
   }
@@ -520,15 +654,14 @@ if (loginForm && loginMessage) {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const user = users.find((user) => user.email === email && user.password === password);
-    if (!user) {
+    const user = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
+    if (!user || !user.passwordHash || !FixLabDB.verifyPassword(password, user.passwordHash)) {
       loginMessage.textContent = "Cuenta no encontrada o contraseña incorrecta. Regístrate primero.";
       loginMessage.style.color = "#b1416f";
       return;
     }
 
-    localStorage.setItem(SESSION_KEY, email);
+    FixLabDB.saveCollection(FixLabDB.collections.SESSION, { email, loggedInAt: new Date().toISOString() });
     if (user.phone) {
       localStorage.setItem("fixlabUserPhone", user.phone);
     }
@@ -560,7 +693,7 @@ if (trackingEmail && currentSessionUser) {
 }
 
 if (trackingForm && trackingMessage && trackingResult) {
-  const storedTickets = getStoredReservationTickets();
+  const storedTickets = FixLabDB.getCollection(FixLabDB.collections.RESERVATIONS);
   if (storedTickets.length > 0) {
     const latestTicket = currentSessionUser
       ? storedTickets.find((ticket) => ticket.email === currentSessionUser) || storedTickets[0]
@@ -585,7 +718,7 @@ if (trackingForm && trackingMessage && trackingResult) {
       return;
     }
 
-    const ticket = getStoredReservationTickets().find((item) => {
+    const ticket = FixLabDB.find(FixLabDB.collections.RESERVATIONS, {}).find((item) => {
       const storedCode = (item.code || item.orderNumber || "").toUpperCase();
       const storedPhone = item.phone ? normalizePhoneValue(item.phone) : "";
       if (normalizedPhone && storedPhone) {
@@ -639,16 +772,19 @@ if (registerForm && registerMessage) {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const alreadyExists = users.some((user) => user.email === email);
+    const alreadyExists = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
     if (alreadyExists) {
       registerMessage.textContent = "Ya existe una cuenta con ese email.";
       registerMessage.style.color = "#b1416f";
       return;
     }
 
-    users.push({ name, email, password });
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    FixLabDB.insert(FixLabDB.collections.USERS, {
+      name,
+      email,
+      passwordHash: FixLabDB.hashPassword(password)
+    });
+    
     registerMessage.textContent = "Cuenta creada correctamente. Ahora puedes iniciar sesión.";
     registerMessage.style.color = "#3d63db";
     window.setTimeout(() => {
@@ -760,19 +896,14 @@ if (reservationForm && reservationMessage) {
 
       reservationMessage.textContent = `Reserva enviada correctamente. Tu numero de reserva es ${orderNumber}.`;
       reservationMessage.style.color = "#3d63db";
-      const reservationTickets = getStoredReservationTickets();
-      const nextTickets = [
-        {
-          orderNumber,
-          phone,
-          email,
-          service: serviceSummary,
-          store: preferredStore,
-          createdAt: new Date().toISOString()
-        },
-        ...reservationTickets.filter((ticket) => (ticket.orderNumber || "").toUpperCase() !== orderNumber)
-      ].slice(0, 30);
-      saveStoredReservationTickets(nextTickets);
+      FixLabDB.insert(FixLabDB.collections.RESERVATIONS, {
+        orderNumber,
+        phone,
+        email,
+        service: serviceSummary,
+        store: preferredStore,
+        status: "Solicitud recibida"
+      });
       reservationForm.reset();
     } catch (error) {
       const reason =
