@@ -1703,3 +1703,42 @@ table {
     transition: none !important;
   }
 }
+
+/* Animaciones para edición visual */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Estilos para elementos editables visuales */
+[data-color] {
+  transition: color 0.3s ease;
+}
+
+[data-icon] {
+  transition: all 0.3s ease;
+}
+
+[data-effect] {
+  transition: all 0.3s ease;
+}
+
+/* Resaltado de elementos editables */
+[data-editable-img] {
+  transition: outline 0.3s ease;
+}
+
+[data-style] {
+  transition: outline 0.3s ease;
+}

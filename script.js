@@ -43,8 +43,43 @@ const FixLabDB = {
     SESSION: 'fixlab_db_session',
     SETTINGS: 'fixlab_db_settings'
   },
-  
-  // Simulación de hash de contraseña (básico, no es seguridad real)
+
+  // Operadores de consulta soportados
+  _operators: {
+    $eq: (val, target) => val === target,
+    $ne: (val, target) => val !== target,
+    $gt: (val, target) => val > target,
+    $gte: (val, target) => val >= target,
+    $lt: (val, target) => val < target,
+    $lte: (val, target) => val <= target,
+    $in: (val, arr) => arr.includes(val),
+    $nin: (val, arr) => !arr.includes(val),
+    $regex: (val, pattern) => new RegExp(pattern).test(val),
+    $exists: (val, exists) => (exists ? val !== undefined : val === undefined)
+  },
+
+  // Evaluar si un documento cumple una condición (soporta operadores)
+  _matches: (doc, condition) => {
+    if (condition === null || condition === undefined) return doc === condition;
+    if (typeof condition !== 'object' || condition === null) return doc === condition;
+
+    return Object.keys(condition).every(key => {
+      const val = doc[key];
+      const cond = condition[key];
+
+      if (key.startsWith('$')) return true;
+
+      if (cond !== null && typeof cond === 'object' && !Array.isArray(cond)) {
+        return Object.keys(cond).every(op => {
+          const opFn = FixLabDB._operators[op];
+          return opFn ? opFn(val, cond[op]) : true;
+        });
+      }
+      return val === cond;
+    });
+  },
+
+  // Simulación de hash de contraseña (básico)
   hashPassword: (password) => {
     let hash = '';
     for (let i = 0; i < password.length; i++) {
@@ -53,7 +88,7 @@ const FixLabDB = {
     }
     return btoa(hash + '_' + password.length);
   },
-  
+
   // Verificar contraseña
   verifyPassword: (input, storedHash) => {
     try {
@@ -64,7 +99,7 @@ const FixLabDB = {
       return false;
     }
   },
-  
+
   // Obtener colección
   getCollection: (collectionName) => {
     try {
@@ -74,12 +109,16 @@ const FixLabDB = {
       return [];
     }
   },
-  
+
   // Guardar colección
   saveCollection: (collectionName, data) => {
-    localStorage.setItem(collectionName, JSON.stringify(data));
+    try {
+      localStorage.setItem(collectionName, JSON.stringify(data));
+    } catch (e) {
+      console.error('FixLabDB: Error guardando colección', collectionName, e);
+    }
   },
-  
+
   // Insertar documento
   insert: (collectionName, document) => {
     const collection = FixLabDB.getCollection(collectionName);
@@ -89,48 +128,149 @@ const FixLabDB = {
     FixLabDB.saveCollection(collectionName, collection);
     return document;
   },
-  
-  // Buscar documentos
-  find: (collectionName, query = {}) => {
+
+  // Insertar múltiples documentos
+  insertMany: (collectionName, documents) => {
     const collection = FixLabDB.getCollection(collectionName);
-    return collection.filter(item => {
-      return Object.keys(query).every(key => item[key] === query[key]);
+    const inserted = documents.map(doc => {
+      doc._id = 'fl_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+      doc.createdAt = new Date().toISOString();
+      return doc;
     });
+    FixLabDB.saveCollection(collectionName, [...collection, ...inserted]);
+    return inserted;
   },
-  
+
+  // Buscar documentos con opciones: sort, skip, limit
+  find: (collectionName, query = {}, options = {}) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    let results = collection.filter(item => FixLabDB._matches(item, query));
+
+    if (options.sort) {
+      const [field, order] = Array.isArray(options.sort) ? options.sort : [options.sort, 1];
+      results.sort((a, b) => {
+        if (a[field] < b[field]) return -1 * order;
+        if (a[field] > b[field]) return 1 * order;
+        return 0;
+      });
+    }
+
+    if (options.skip) results = results.slice(options.skip);
+    if (options.limit) results = results.slice(0, options.limit);
+
+    return results;
+  },
+
   // Encontrar un documento
-  findOne: (collectionName, query = {}) => {
-    return FixLabDB.find(collectionName, query)[0] || null;
+  findOne: (collectionName, query = {}, options = {}) => {
+    return FixLabDB.find(collectionName, query, { ...options, limit: 1 })[0] || null;
   },
-  
-  // Actualizar documentos
-  update: (collectionName, query, updates) => {
+
+  // Contar documentos
+  count: (collectionName, query = {}) => {
+    return FixLabDB.find(collectionName, query).length;
+  },
+
+  // Actualizar documentos (soporta $set, $inc, $push)
+  update: (collectionName, query, updates, options = {}) => {
     const collection = FixLabDB.getCollection(collectionName);
     let updated = 0;
     const newCollection = collection.map(item => {
-      if (Object.keys(query).every(key => item[key] === query[key])) {
-        updated++;
-        return { ...item, ...updates, updatedAt: new Date().toISOString() };
+      if (!FixLabDB._matches(item, query)) return item;
+      updated++;
+      const updatedItem = { ...item, updatedAt: new Date().toISOString() };
+
+      if (updates.$set) Object.assign(updatedItem, updates.$set);
+      else if (updates.$inc) {
+        Object.keys(updates.$inc).forEach(k => {
+          updatedItem[k] = (updatedItem[k] || 0) + updates.$inc[k];
+        });
+      } else if (updates.$push) {
+        Object.keys(updates.$push).forEach(k => {
+          updatedItem[k] = [...(updatedItem[k] || []), updates.$push[k]];
+        });
+      } else {
+        Object.assign(updatedItem, updates);
       }
-      return item;
+
+      return updatedItem;
     });
-    FixLabDB.saveCollection(collectionName, newCollection);
-    return updated;
+    if (updated) FixLabDB.saveCollection(collectionName, newCollection);
+    return options.multi ? updated : (updated > 0 ? 1 : 0);
   },
-  
+
+  // Actualizar un documento
+  updateOne: (collectionName, query, updates) => {
+    return FixLabDB.update(collectionName, query, updates, { multi: false });
+  },
+
   // Eliminar documentos
   remove: (collectionName, query) => {
     const collection = FixLabDB.getCollection(collectionName);
-    const newCollection = collection.filter(item => {
-      return !Object.keys(query).every(key => item[key] === query[key]);
-    });
-    FixLabDB.saveCollection(collectionName, newCollection);
-    return collection.length - newCollection.length;
+    const newCollection = collection.filter(item => !FixLabDB._matches(item, query));
+    const removed = collection.length - newCollection.length;
+    if (removed) FixLabDB.saveCollection(collectionName, newCollection);
+    return removed;
   },
-  
-  // Inicializar base de datos (migrar datos antiguos si existen)
+
+  // Eliminar un documento
+  removeOne: (collectionName, query) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    const idx = collection.findIndex(item => FixLabDB._matches(item, query));
+    if (idx === -1) return 0;
+    collection.splice(idx, 1);
+    FixLabDB.saveCollection(collectionName, collection);
+    return 1;
+  },
+
+  // Vaciar colección
+  clear: (collectionName) => {
+    const collection = FixLabDB.getCollection(collectionName);
+    const count = collection.length;
+    FixLabDB.saveCollection(collectionName, []);
+    return count;
+  },
+
+  // Exportar colección a JSON
+  exportCollection: (collectionName) => {
+    return JSON.stringify(FixLabDB.getCollection(collectionName));
+  },
+
+  // Importar JSON a colección (reemplaza existentes)
+  importCollection: (collectionName, jsonString, merge = false) => {
+    try {
+      const data = JSON.parse(jsonString);
+      if (!Array.isArray(data)) return false;
+      if (merge) {
+        const existing = FixLabDB.getCollection(collectionName);
+        FixLabDB.saveCollection(collectionName, [...existing, ...data]);
+      } else {
+        FixLabDB.saveCollection(collectionName, data);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // Exportar toda la base de datos
+  exportAll: () => {
+    const data = {};
+    Object.values(FixLabDB.collections).forEach(key => {
+      data[key] = FixLabDB.getCollection(key);
+    });
+    return JSON.stringify(data);
+  },
+
+  // Hacer backup en localStorage
+  backup: (label = 'auto') => {
+    const key = 'fixlab_db_backup_' + label + '_' + Date.now();
+    localStorage.setItem(key, FixLabDB.exportAll());
+    return key;
+  },
+
+  // Inicializar base de datos (migrar datos antiguos)
   init: () => {
-    // Migrar usuarios antiguos
     const oldUsers = localStorage.getItem('fixlabUsers');
     if (oldUsers && !localStorage.getItem(FixLabDB.collections.USERS)) {
       try {
@@ -147,8 +287,7 @@ const FixLabDB = {
         }
       } catch { /* ignore */ }
     }
-    
-    // Migrar reservas antiguas
+
     const oldReservations = localStorage.getItem('fixlabReservations');
     if (oldReservations && !localStorage.getItem(FixLabDB.collections.RESERVATIONS)) {
       try {
@@ -165,6 +304,273 @@ const FixLabDB = {
 // Inicializar BD
 FixLabDB.init();
 
+// Sistema de gestión de contenido editable
+const ContentManager = {
+  CONTENT_KEY: 'fixlab_editable_content',
+  STYLES_KEY: 'fixlab_editable_styles',
+
+  // Obtener todo el contenido guardado
+  getAllContent() {
+    try {
+      const saved = localStorage.getItem(this.CONTENT_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  },
+
+  // Guardar contenido
+  saveContent(pageId, content) {
+    const all = this.getAllContent();
+    all[pageId] = content;
+    localStorage.setItem(this.CONTENT_KEY, JSON.stringify(all));
+  },
+
+  // Obtener contenido de una página
+  getPageContent(pageId) {
+    return this.getAllContent()[pageId] || {};
+  },
+
+  // Aplicar contenido a la página actual
+  applyContent() {
+    const pageId = this.getCurrentPageId();
+    const content = this.getPageContent(pageId);
+
+    Object.entries(content).forEach(([key, value]) => {
+      const el = document.querySelector(`[data-editable="${key}"]`);
+      if (el) {
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          el.value = value;
+        } else {
+          el.innerHTML = value;
+        }
+      }
+    });
+
+    // Aplicar estilos guardados
+    this.applyStyles();
+  },
+
+  // Obtener ID de página actual
+  getCurrentPageId() {
+    const path = window.location.pathname;
+    return path.substring(path.lastIndexOf('/') + 1).replace('.html', '') || 'index';
+  },
+
+  // Recopilar contenido editable de la página
+  collectContent() {
+    const content = {};
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      const key = el.getAttribute('data-editable');
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        content[key] = el.value;
+      } else {
+        content[key] = el.innerHTML;
+      }
+    });
+    return content;
+  },
+
+  // Activar modo edición en la página
+  enableEditMode() {
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.setAttribute('contenteditable', 'true');
+      el.style.outline = '2px dashed #3d63db';
+      el.style.padding = '4px';
+      el.style.borderRadius = '4px';
+      el.style.backgroundColor = 'rgba(61, 99, 219, 0.05)';
+    });
+
+    // Activar edición de imágenes
+    document.querySelectorAll('[data-editable-img]').forEach(el => {
+      el.style.outline = '2px dashed #28a745';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para cambiar imagen';
+      el.addEventListener('click', this._handleImageClick);
+    });
+
+    // Activar edición de estilos
+    document.querySelectorAll('[data-style]').forEach(el => {
+      el.style.outline = '2px dashed #dc3545';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para editar estilos';
+      el.addEventListener('click', this._handleStyleClick);
+    });
+
+    this.isEditMode = true;
+  },
+
+  // Desactivar modo edición
+  disableEditMode() {
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.removeAttribute('contenteditable');
+      el.style.outline = '';
+      el.style.padding = '';
+      el.style.borderRadius = '';
+      el.style.backgroundColor = '';
+    });
+
+    document.querySelectorAll('[data-editable-img]').forEach(el => {
+      el.style.outline = '';
+      el.style.cursor = '';
+      el.title = '';
+      el.removeEventListener('click', this._handleImageClick);
+    });
+
+    document.querySelectorAll('[data-style]').forEach(el => {
+      el.style.outline = '';
+      el.style.cursor = '';
+      el.title = '';
+      el.removeEventListener('click', this._handleStyleClick);
+    });
+
+    this.isEditMode = false;
+  },
+
+  isEditMode: false,
+
+  // Manejar click en imagen
+  _handleImageClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target;
+    const currentSrc = el.src || el.getAttribute('src');
+    const newSrc = prompt('Nueva URL de la imagen:', currentSrc);
+    if (newSrc && newSrc !== currentSrc) {
+      el.src = newSrc;
+    }
+  },
+
+  // Manejar click en color
+  _handleColorClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target;
+    const currentColor = el.style.color || getComputedStyle(el).color;
+    const newColor = prompt('Nuevo color (hex, rgb, o nombre):', currentColor);
+    if (newColor !== null) {
+      if (newColor === '') {
+        el.style.color = '';
+      } else {
+        el.style.color = newColor;
+      }
+    }
+  },
+
+  // Manejar click en icono
+  _handleIconClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target;
+    const currentIcon = el.getAttribute('data-icon') || el.innerHTML;
+    const newIcon = prompt('Nuevo icono (clase de Font Awesome o HTML):', currentIcon);
+    if (newIcon !== null && newIcon !== currentIcon) {
+      if (newIcon.startsWith('<')) {
+        el.innerHTML = newIcon;
+      } else {
+        el.setAttribute('data-icon', newIcon);
+        el.className = newIcon;
+      }
+    }
+  },
+
+  // Manejar click en efecto
+  _handleEffectClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target;
+    const currentEffect = el.getAttribute('data-effect') || '';
+    const newEffect = prompt('Efectos disponibles: shadow, glow, pulse, fade, slide\n\nEditar efectos (deja vacío para eliminar):', currentEffect);
+    if (newEffect !== null) {
+      if (newEffect === '') {
+        el.removeAttribute('data-effect');
+        el.style.boxShadow = '';
+        el.style.animation = '';
+      } else {
+        el.setAttribute('data-effect', newEffect);
+        // Aplicar efectos básicos
+        if (newEffect.includes('shadow')) {
+          el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        }
+        if (newEffect.includes('glow')) {
+          el.style.boxShadow = '0 0 20px rgba(61,99,219,0.5)';
+        }
+        if (newEffect.includes('pulse')) {
+          el.style.animation = 'pulse 2s infinite';
+        }
+        if (newEffect.includes('fade')) {
+          el.style.animation = 'fadeIn 1s';
+        }
+        if (newEffect.includes('slide')) {
+          el.style.animation = 'slideIn 0.5s';
+        }
+      }
+    }
+  },
+
+  // Guardar estilos
+  saveStyles(pageId, styles) {
+    const all = this.getAllStyles();
+    all[pageId] = styles;
+    localStorage.setItem(this.STYLES_KEY, JSON.stringify(all));
+  },
+
+  // Obtener todos los estilos
+  getAllStyles() {
+    try {
+      const saved = localStorage.getItem(this.STYLES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  },
+
+  // Obtener estilos de una página
+  getPageStyles(pageId) {
+    return this.getAllStyles()[pageId] || {};
+  },
+
+  // Aplicar estilos a la página
+  applyStyles() {
+    const pageId = this.getCurrentPageId();
+    const styles = this.getPageStyles(pageId);
+
+    Object.entries(styles).forEach(([selector, styleRules]) => {
+      const el = document.querySelector(selector);
+      if (el) {
+        Object.entries(styleRules).forEach(([prop, val]) => {
+          el.style.setProperty(prop, val);
+        });
+      }
+    });
+  },
+
+  // Recopilar estilos de la página
+  collectStyles() {
+    const styles = {};
+    document.querySelectorAll('[data-style]').forEach(el => {
+      const styleProps = el.getAttribute('data-style').split(',');
+      const elStyles = {};
+      styleProps.forEach(prop => {
+        const value = el.style.getPropertyValue(prop.trim());
+        if (value) {
+          elStyles[prop.trim()] = value;
+        }
+      });
+      if (Object.keys(elStyles).length > 0) {
+        // Usar un selector único
+        const key = el.getAttribute('data-style-key') || `style-${Math.random().toString(36).substr(2, 9)}`;
+        el.setAttribute('data-style-key', key);
+        styles[key] = elStyles;
+      }
+    });
+    return styles;
+  }
+};
+
+// Aplicar contenido al cargar la página
+ContentManager.applyContent();
+
 const SESSION_KEY = FixLabDB.collections.SESSION;
 const USERS_KEY = FixLabDB.collections.USERS;
 const RESERVATION_TICKETS_KEY = FixLabDB.collections.RESERVATIONS;
@@ -173,7 +579,6 @@ const EMAILJS_TEMPLATE_ID = "template_wxzr0ri";
 const FIXLAB_TARGET_EMAIL = "FixLabCyL@gmail.com";
 const WEB3FORMS_ACCESS_KEY = "030271c2-e0d6-4f8c-97e1-6b3d78ffc154";
 const WEB3FORMS_API_URL = "https://api.web3forms.com/submit";
-const RESERVATION_TICKETS_KEY = "fixlabReservations";
 const generateOrderNumber = () => {
   const year = new Date().getFullYear();
   const rand = Math.floor(1000 + Math.random() * 9000);
@@ -511,7 +916,6 @@ if (loginButton) {
     loginButton.addEventListener("click", (event) => {
       event.preventDefault();
       FixLabDB.saveCollection(FixLabDB.collections.SESSION, []);
-      localStorage.removeItem("fixlabUserPhone");
       window.location.href = "index.html";
     });
   } else {
@@ -567,7 +971,6 @@ if (navLinks && !navLinks.querySelector(".nav-auth-item")) {
     authLink.addEventListener("click", (event) => {
       event.preventDefault();
       FixLabDB.saveCollection(FixLabDB.collections.SESSION, []);
-      localStorage.removeItem("fixlabUserPhone");
       window.location.href = "index.html";
     });
   }
@@ -633,8 +1036,10 @@ if (menuToggle && navLinks) {
       menuToggle.setAttribute("aria-expanded", "false");
       document.body.style.overflow = "";
     }
-  }, { passive: true });
-}
+   }, { passive: true });
+
+  document.addEventListener("click", (e) => {
+    const target = e.target;
     if (!navLinks.contains(target) && !menuToggle.contains(target)) {
       navLinks.classList.remove("show");
     }
@@ -662,9 +1067,6 @@ if (loginForm && loginMessage) {
     }
 
     FixLabDB.saveCollection(FixLabDB.collections.SESSION, { email, loggedInAt: new Date().toISOString() });
-    if (user.phone) {
-      localStorage.setItem("fixlabUserPhone", user.phone);
-    }
     loginMessage.textContent = "Inicio de sesión correcto. Redirigiendo...";
     loginMessage.style.color = "#3d63db";
     window.setTimeout(() => {
@@ -834,6 +1236,33 @@ if (contactForm && formMessage && window.emailjs) {
       formMessage.style.color = "#b1416f";
     }
   });
+}
+
+// Pre-select service from URL parameter
+if (reservationForm) {
+  const params = new URLSearchParams(window.location.search);
+  const serviceParam = params.get("service");
+  if (serviceParam) {
+    const serviceSelect = reservationForm.querySelector("#service");
+    if (serviceSelect) {
+      // Try to find matching option (case-insensitive)
+      const options = Array.from(serviceSelect.options);
+      const match = options.find(opt =>
+        opt.value.toLowerCase() === serviceParam.toLowerCase() ||
+        opt.text.toLowerCase().includes(serviceParam.toLowerCase())
+      );
+      if (match) {
+        match.selected = true;
+      } else {
+        // If no exact match, add it as a new option
+        const newOption = document.createElement("option");
+        newOption.value = serviceParam;
+        newOption.textContent = serviceParam;
+        newOption.selected = true;
+        serviceSelect.appendChild(newOption);
+      }
+    }
+  }
 }
 
 if (reservationForm && reservationMessage) {
@@ -1193,25 +1622,25 @@ if (document.getElementById("reservationForm")) {
 const enhanceRegistration = () => {
   const registerForm = document.getElementById("registerForm");
   if (!registerForm) return;
-  
+
   registerForm.addEventListener("submit", (event) => {
     const formData = new FormData(registerForm);
     const name = (formData.get("name") || "").toString().trim();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
     const password = (formData.get("password") || "").toString().trim();
-    
+
     if (!name || !email || !password) return;
-    
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const existingIndex = users.findIndex((u) => u.email === email);
-    
-    if (existingIndex >= 0) {
-      users[existingIndex] = { ...users[existingIndex], name, email, password };
+
+    const existing = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
+    if (existing) {
+      FixLabDB.updateOne(FixLabDB.collections.USERS, { email }, { $set: { name, passwordHash: FixLabDB.hashPassword(password) } });
     } else {
-      users.push({ name, email, password });
+      FixLabDB.insert(FixLabDB.collections.USERS, {
+        name,
+        email,
+        passwordHash: FixLabDB.hashPassword(password)
+      });
     }
-    
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
   });
 };
 
@@ -1235,3 +1664,965 @@ document.querySelectorAll("a[href]").forEach((link) => {
     }, 85);
   });
 });
+
+/* ==================== Admin Database Page ==================== */
+const ADMIN_EMAIL = 'fixlabcyl@gmail.com';
+const ADMIN_PASSWORD = 'Skibidi67';
+const ADMIN_SESSION_KEY = 'fixlab_admin_session';
+
+const adminLoginSection = document.getElementById('adminLoginSection');
+const adminPanel = document.getElementById('adminPanel');
+const adminLoginForm = document.getElementById('adminLoginForm');
+const adminLoginMessage = document.getElementById('adminLoginMessage');
+const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+const dbStats = document.getElementById('dbStats');
+const dbCollections = document.getElementById('dbCollections');
+
+const isAdminPage = adminLoginForm !== null;
+
+if (isAdminPage) {
+  // Si ya hay sesión de admin activa
+  if (localStorage.getItem(ADMIN_SESSION_KEY) === 'true') {
+    showAdminPanel();
+  }
+
+  adminLoginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(adminLoginForm);
+    const email = (formData.get('email') || '').toString().trim().toLowerCase();
+    const password = (formData.get('password') || '').toString();
+
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+      showAdminPanel();
+    } else {
+      adminLoginMessage.textContent = 'Credenciales incorrectas.';
+      adminLoginMessage.style.color = '#b1416f';
+    }
+  });
+
+  if (adminLogoutBtn) {
+    adminLogoutBtn.addEventListener('click', () => {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      adminPanel.style.display = 'none';
+      adminLoginSection.style.display = 'block';
+      adminLoginForm.reset();
+    });
+  }
+}
+
+function showAdminPanel() {
+  if (!adminLoginSection || !adminPanel) return;
+  adminLoginSection.style.display = 'none';
+  adminPanel.style.display = 'block';
+  renderDatabase();
+}
+
+function renderDatabase() {
+  if (!dbStats || !dbCollections) return;
+
+  const collections = FixLabDB.collections;
+  const icons = { USERS: '👤', SESSION: '🔐', RESERVATIONS: '🎫', TICKETS: '📋' };
+
+  // Estadísticas
+  let statsHTML = '';
+  Object.entries(collections).forEach(([name, key]) => {
+    const data = FixLabDB.getCollection(key);
+    const label = name.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    const icon = icons[name] || '📄';
+    statsHTML += `<div class="stat">
+      <div class="icon">${icon}</div>
+      <div class="info"><strong>${data.length}</strong><span>${label}</span></div>
+    </div>`;
+  });
+  dbStats.innerHTML = statsHTML;
+
+  // Colecciones en tablas
+  let html = '';
+  Object.entries(collections).forEach(([name, key]) => {
+    const data = FixLabDB.getCollection(key);
+    const label = name.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    const icon = icons[name] || '📄';
+
+    if (data.length === 0) {
+      html += `<div class="db-collection">
+        <h3>${icon} ${label} <span class="count">0 registros</span></h3>
+        <div class="empty-collection">No hay datos en esta colección</div>
+      </div>`;
+      return;
+    }
+
+    // Obtener todas las claves únicas de todos los objetos
+    const allKeys = new Set();
+    data.forEach(item => Object.keys(item).forEach(k => allKeys.add(k)));
+    const headers = Array.from(allKeys);
+
+    let tableHTML = `<div class="table-wrapper"><table>
+      <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${data.map(item => `<tr>${headers.map(h => {
+        let val = item[h];
+        if (val === undefined || val === null) return '<td>-</td>';
+        if (typeof val === 'object') val = JSON.stringify(val);
+        if (typeof val === 'string' && val.length > 50) val = val.substring(0, 50) + '...';
+        return `<td title="${item[h] !== null && item[h] !== undefined ? String(item[h]) : ''}">${val}</td>`;
+      }).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+
+    html += `<div class="db-collection">
+      <h3>${icon} ${label} <span class="count">${data.length} registros</span></h3>
+      ${tableHTML}
+    </div>`;
+  });
+  dbCollections.innerHTML = html;
+}
+
+// Botones de administración
+const refreshBtn = document.getElementById('refreshBtn');
+const exportBtn = document.getElementById('exportBtn');
+
+if (refreshBtn) {
+  refreshBtn.addEventListener('click', () => {
+    renderDatabase();
+  });
+}
+
+if (exportBtn) {
+  exportBtn.addEventListener('click', () => {
+    const data = {};
+    Object.values(FixLabDB.collections).forEach(key => {
+      data[key] = FixLabDB.getCollection(key);
+    });
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'fixlab_db_export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+// Navegación por tabs en admin
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabDb = document.getElementById('tab-db');
+const tabPages = document.getElementById('tab-pages');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabBtns.forEach(b => {
+      b.style.color = '#666';
+      b.style.borderBottomColor = 'transparent';
+    });
+    btn.style.color = '#3d63db';
+    btn.style.borderBottomColor = '#3d63db';
+
+    const tab = btn.getAttribute('data-tab');
+    if (tab === 'db') {
+      tabDb.style.display = 'block';
+      tabPages.style.display = 'none';
+      renderDatabase();
+    } else {
+      tabDb.style.display = 'none';
+      tabPages.style.display = 'block';
+    }
+  });
+});
+
+// Editor de páginas
+const pageSelector = document.getElementById('pageSelector');
+const loadPageBtn = document.getElementById('loadPageBtn');
+const toggleEditBtn = document.getElementById('toggleEditBtn');
+const savePageBtn = document.getElementById('savePageBtn');
+const resetPageBtn = document.getElementById('resetPageBtn');
+const pagePreview = document.getElementById('pagePreview');
+const pageEditorStatus = document.getElementById('pageEditorStatus');
+let currentEditPage = null;
+let editModeActive = false;
+
+if (loadPageBtn) {
+  loadPageBtn.addEventListener('click', () => {
+    const page = pageSelector.value;
+    if (!page) return;
+    currentEditPage = page;
+    editModeActive = false;
+    pagePreview.src = page;
+    toggleEditBtn.style.display = 'inline-block';
+    toggleEditBtn.textContent = 'Activar Edición';
+    toggleEditBtn.disabled = false;
+    savePageBtn.style.display = 'none';
+    pageEditorStatus.style.display = 'block';
+    pageEditorStatus.style.background = '#d4edda';
+    pageEditorStatus.style.color = '#155724';
+    pageEditorStatus.textContent = 'Página cargada. Haz clic en "Activar Edición" para empezar.';
+    setTimeout(() => {
+      if (!editModeActive) pageEditorStatus.style.display = 'none';
+    }, 3000);
+  });
+}
+
+if (toggleEditBtn) {
+  toggleEditBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+
+    if (!editModeActive) {
+      // Enviar mensaje al iframe para activar edición
+      pagePreview.contentWindow.postMessage({
+        type: 'enableEditMode',
+        pageId: currentEditPage.replace('.html', '')
+      }, '*');
+
+      editModeActive = true;
+      toggleEditBtn.textContent = 'Desactivar Edición';
+      savePageBtn.style.display = 'inline-block';
+
+      pageEditorStatus.style.display = 'block';
+      pageEditorStatus.style.background = '#d4edda';
+      pageEditorStatus.style.color = '#155724';
+      pageEditorStatus.textContent = 'Modo edición activado. Edita los campos resaltados en azul.';
+    } else {
+      // Desactivar edición
+      pagePreview.contentWindow.postMessage({
+        type: 'disableEditMode'
+      }, '*');
+
+      editModeActive = false;
+      toggleEditBtn.textContent = 'Activar Edición';
+      savePageBtn.style.display = 'none';
+      pageEditorStatus.style.display = 'none';
+    }
+  });
+}
+
+if (savePageBtn) {
+  savePageBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+
+    // Pedir contenido al iframe
+    pagePreview.contentWindow.postMessage({
+      type: 'saveContent',
+      pageId: currentEditPage.replace('.html', '')
+    }, '*');
+  });
+}
+
+// Escuchar respuestas del iframe
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'contentSaved') {
+    pageEditorStatus.style.display = 'block';
+    pageEditorStatus.style.background = '#d4edda';
+    pageEditorStatus.style.color = '#155724';
+    pageEditorStatus.textContent = 'Cambios guardados correctamente.';
+    setTimeout(() => { pageEditorStatus.style.display = 'none'; }, 3000);
+  } else if (event.data.type === 'saveError') {
+    pageEditorStatus.style.display = 'block';
+    pageEditorStatus.style.background = '#f8d7da';
+    pageEditorStatus.style.color = '#721c24';
+    pageEditorStatus.textContent = 'Error al guardar los cambios.';
+  }
+});
+
+if (resetPageBtn) {
+  resetPageBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+    const pageId = currentEditPage.replace('.html', '');
+    const all = ContentManager.getAllContent();
+    delete all[pageId];
+    localStorage.setItem('fixlab_editable_content', JSON.stringify(all));
+
+    pagePreview.src = pagePreview.src;
+
+    pageEditorStatus.style.display = 'block';
+    pageEditorStatus.style.background = '#d4edda';
+    pageEditorStatus.style.color = '#155724';
+    pageEditorStatus.textContent = 'Página restaurada al contenido original.';
+    setTimeout(() => { pageEditorStatus.style.display = 'none'; }, 3000);
+  });
+}
+
+// Escuchar mensajes del padre (para edición de páginas)
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'enableEditMode') {
+    // Aplicar contenido guardado
+    const savedContent = ContentManager.getPageContent(event.data.pageId);
+    Object.entries(savedContent).forEach(([key, value]) => {
+      const el = document.querySelector(`[data-editable="${key}"]`);
+      if (el) el.innerHTML = value;
+    });
+
+    // Activar modo edición
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.setAttribute('contenteditable', 'true');
+      el.style.outline = '2px dashed #3d63db';
+      el.style.padding = '4px';
+      el.style.backgroundColor = 'rgba(61,99,219,0.05)';
+    });
+
+    // Activar edición de imágenes
+    document.querySelectorAll('[data-editable-img]').forEach(el => {
+      el.style.outline = '2px dashed #28a745';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para cambiar imagen';
+      el.addEventListener('click', ContentManager._handleImageClick);
+    });
+
+    // Activar edición de estilos
+    document.querySelectorAll('[data-style]').forEach(el => {
+      el.style.outline = '2px dashed #dc3545';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para editar estilos';
+      el.addEventListener('click', ContentManager._handleStyleClick);
+    });
+
+  } else if (event.data.type === 'disableEditMode') {
+    // Desactivar modo edición
+    document.querySelectorAll('[data-editable]').forEach(el => {
+      el.removeAttribute('contenteditable');
+      el.style.outline = '';
+      el.style.padding = '';
+      el.style.backgroundColor = '';
+    });
+
+    document.querySelectorAll('[data-editable-img]').forEach(el => {
+      el.style.outline = '';
+      el.style.cursor = '';
+      el.title = '';
+      el.removeEventListener('click', ContentManager._handleImageClick);
+    });
+
+    document.querySelectorAll('[data-style]').forEach(el => {
+      el.style.outline = '';
+      el.style.cursor = '';
+      el.title = '';
+      el.removeEventListener('click', ContentManager._handleStyleClick);
+    });
+
+  } else if (event.data.type === 'saveContent') {
+    // Guardar contenido
+    try {
+      const content = {};
+      document.querySelectorAll('[data-editable]').forEach(el => {
+        content[el.getAttribute('data-editable')] = el.innerHTML;
+      });
+      ContentManager.saveContent(event.data.pageId, content);
+
+      // Guardar estilos
+      const styles = ContentManager.collectStyles();
+      if (Object.keys(styles).length > 0) {
+        ContentManager.saveStyles(event.data.pageId, styles);
+      }
+
+      window.parent.postMessage({type: 'contentSaved'}, '*');
+    } catch (e) {
+      window.parent.postMessage({type: 'saveError'}, '*');
+    }
+
+  } else if (event.data.type === 'enableColorEdit') {
+    // Activar edición de colores
+    document.querySelectorAll('[data-color]').forEach(el => {
+      el.style.outline = '2px dashed #ffc107';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para cambiar color';
+      el.addEventListener('click', ContentManager._handleColorClick);
+    });
+    alert('Modo edición de colores activado. Haz click en los elementos resaltados en amarillo.');
+
+  } else if (event.data.type === 'enableImageEdit') {
+    // Activar edición de imágenes
+    document.querySelectorAll('img, [data-editable-img]').forEach(el => {
+      el.style.outline = '2px dashed #28a745';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para cambiar imagen';
+      el.addEventListener('click', ContentManager._handleImageClick);
+    });
+    alert('Modo edición de imágenes activado. Haz click en las imágenes resaltadas en verde.');
+
+  } else if (event.data.type === 'enableIconEdit') {
+    // Activar edición de iconos
+    document.querySelectorAll('[data-icon]').forEach(el => {
+      el.style.outline = '2px dashed #17a2b8';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para cambiar icono';
+      el.addEventListener('click', ContentManager._handleIconClick);
+    });
+    alert('Modo edición de iconos activado. Haz click en los iconos resaltados en cyan.');
+
+  } else if (event.data.type === 'enableEffectsEdit') {
+    // Activar edición de efectos
+    document.querySelectorAll('[data-effect]').forEach(el => {
+      el.style.outline = '2px dashed #e83e8c';
+      el.style.cursor = 'pointer';
+      el.title = 'Click para editar efectos';
+      el.addEventListener('click', ContentManager._handleEffectClick);
+    });
+    alert('Modo edición de efectos activado. Haz click en los elementos resaltados en rosa.');
+  }
+});
+
+// Botones de edición visual en admin
+const editColorsBtn = document.getElementById('editColorsBtn');
+const editImagesBtn = document.getElementById('editImagesBtn');
+const editIconsBtn = document.getElementById('editIconsBtn');
+const editEffectsBtn = document.getElementById('editEffectsBtn');
+
+if (editColorsBtn) {
+  editColorsBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+    pagePreview.contentWindow.postMessage({
+      type: 'enableColorEdit',
+      pageId: currentEditPage.replace('.html', '')
+    }, '*');
+  });
+}
+
+if (editImagesBtn) {
+  editImagesBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+    pagePreview.contentWindow.postMessage({
+      type: 'enableImageEdit',
+      pageId: currentEditPage.replace('.html', '')
+    }, '*');
+  });
+}
+
+if (editIconsBtn) {
+  editIconsBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+    pagePreview.contentWindow.postMessage({
+      type: 'enableIconEdit',
+      pageId: currentEditPage.replace('.html', '')
+    }, '*');
+  });
+}
+
+if (editEffectsBtn) {
+  editEffectsBtn.addEventListener('click', () => {
+    if (!currentEditPage) return;
+    pagePreview.contentWindow.postMessage({
+      type: 'enableEffectsEdit',
+      pageId: currentEditPage.replace('.html', '')
+    }, '*');
+  });
+}
+
+// Nuevo panel de administración WordPress-like
+const loginWrapper = document.getElementById('loginWrapper');
+const adminWrapper = document.getElementById('adminWrapper');
+const sidebar = document.getElementById('sidebar');
+const toggleSidebarBtn = document.getElementById('toggleSidebar');
+const topbarTitle = document.getElementById('topbarTitle');
+const contentFrame = document.getElementById('contentFrame');
+const btnRefresh = document.getElementById('btnRefresh');
+const btnSave = document.getElementById('btnSave');
+const btnLogout = document.getElementById('btnLogout');
+const contextMenu = document.getElementById('contextMenu');
+const modalOverlay = document.getElementById('modalOverlay');
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalContent = document.getElementById('modalContent');
+const modalCancel = document.getElementById('modalCancel');
+const modalConfirm = document.getElementById('modalConfirm');
+
+let currentSection = 'dashboard';
+let currentAction = null;
+let selectedElement = null;
+let isEditMode = false;
+
+// Login
+if (adminLoginForm) {
+  adminLoginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(adminLoginForm);
+    const email = (formData.get('email') || '').toString().trim().toLowerCase();
+    const password = (formData.get('password') || '').toString();
+
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+      loginWrapper.style.display = 'none';
+      adminWrapper.style.display = 'flex';
+      loadDashboard();
+    } else {
+      adminLoginMessage.textContent = 'Credenciales incorrectas.';
+      adminLoginMessage.style.color = '#b1416f';
+    }
+  });
+}
+
+// Logout
+if (btnLogout) {
+  btnLogout.addEventListener('click', () => {
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    adminWrapper.style.display = 'none';
+    loginWrapper.style.display = 'flex';
+    adminLoginForm.reset();
+  });
+}
+
+// Toggle sidebar
+if (toggleSidebarBtn) {
+  toggleSidebarBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+  });
+}
+
+// Nav items
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+
+    const section = item.getAttribute('data-section');
+    const action = item.getAttribute('data-action');
+
+    if (section) {
+      currentSection = section;
+      topbarTitle.textContent = item.textContent.trim();
+
+      if (section === 'dashboard') {
+        loadDashboard();
+      } else if (section === 'pages') {
+        topbarTitle.textContent = 'Seleccionar Página';
+        contentFrame.src = 'about:blank';
+        showPageSelector();
+      } else if (section === 'database') {
+        topbarTitle.textContent = 'Base de Datos';
+        loadDatabase();
+      }
+    }
+
+    if (action) {
+      currentAction = action;
+      topbarTitle.textContent = item.textContent.trim();
+      handleAction(action);
+    }
+  });
+});
+
+// Cargar dashboard
+function loadDashboard() {
+  btnSave.style.display = 'none';
+  contentFrame.src = 'index.html';
+}
+
+// Cargar base de datos
+function loadDatabase() {
+  btnSave.style.display = 'none';
+  // Mostrar vista de base de datos
+  const html = `
+    <div style="padding:2rem; overflow-y:auto; height:100%;">
+      <h2 style="color:#1e293b; margin-top:0;">Base de Datos</h2>
+      <div id="dbStats" style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:2rem;"></div>
+      <div id="dbCollections"></div>
+    </div>
+  `;
+  contentFrame.onload = null;
+  contentFrame.srcdoc = html;
+  setTimeout(() => {
+    renderDatabase();
+  }, 100);
+}
+
+// Mostrar selector de página
+function showPageSelector() {
+  const pageSelectorOverlay = document.getElementById('pageSelectorOverlay');
+  const pageGrid = document.getElementById('pageGrid');
+
+  const pages = [
+    { file: 'index.html', name: 'Inicio' },
+    { file: 'servicios.html', name: 'Servicios' },
+    { file: 'tiendas.html', name: 'Tiendas' },
+    { file: 'tienda.html', name: 'Tienda' },
+    { file: 'contacto.html', name: 'Contacto' },
+    { file: 'servicio-pantalla.html', name: 'Servicio - Pantalla' },
+    { file: 'servicio-bateria.html', name: 'Servicio - Batería' },
+    { file: 'servicio-camara.html', name: 'Servicio - Cámara' },
+    { file: 'servicio-conector.html', name: 'Servicio - Conector' },
+    { file: 'servicio-agua.html', name: 'Servicio - Agua' },
+    { file: 'tienda-rio-shopping.html', name: 'Tienda - Río Shopping' },
+    { file: 'tienda-centro.html', name: 'Tienda - Centro' },
+    { file: 'tienda-burgos.html', name: 'Tienda - Burgos' },
+    { file: 'aviso-legal.html', name: 'Aviso Legal' },
+    { file: 'politica-privacidad.html', name: 'Política Privacidad' },
+    { file: 'politica-cookies.html', name: 'Política Cookies' }
+  ];
+
+  pageGrid.innerHTML = pages.map(p => `
+    <div onclick="selectPage('${p.file}')" style="background:#fff; padding:1.5rem; border-radius:8px; cursor:pointer; border:1px solid #e2e8f0; transition:all 0.2s; hover:border-color:#3d63db; hover:box-shadow:0 4px 12px rgba(61,99,219,0.1);">
+      <div style="font-size:1.1rem; font-weight:600; color:#1e293b; margin-bottom:0.5rem;">${p.name}</div>
+      <div style="font-size:0.85rem; color:#64748b;">${p.file}</div>
+    </div>
+  `).join('');
+
+  pageSelectorOverlay.classList.add('show');
+}
+
+// Cerrar selector
+document.addEventListener('click', (e) => {
+  const overlay = document.getElementById('pageSelectorOverlay');
+  if (e.target === overlay) {
+    overlay.classList.remove('show');
+  }
+});
+
+// Seleccionar página
+window.selectPage = function(page) {
+  const overlay = document.getElementById('pageSelectorOverlay');
+  overlay.classList.remove('show');
+
+  if (contentFrame) {
+    contentFrame.src = page;
+    topbarTitle.textContent = 'Editando: ' + page;
+    if (btnSave) btnSave.style.display = 'inline-block';
+    isEditMode = false;
+
+    // Esperar a que cargue
+    contentFrame.onload = () => {
+      // Inyectar ContentManager si no existe
+      try {
+        const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+        if (iframeDoc && !iframeDoc.defaultView.ContentManager) {
+          const script = iframeDoc.createElement('script');
+          script.src = 'script.js';
+          iframeDoc.body.appendChild(script);
+        }
+      } catch (e) {}
+    };
+  }
+};
+
+// Manejar acciones
+function handleAction(action) {
+  if (!contentFrame.src || contentFrame.src === 'about:blank') {
+    alert('Selecciona una página primero');
+    return;
+  }
+
+  if (action === 'edit-content') {
+    enableContentEdit();
+  } else if (action === 'edit-colors') {
+    enableColorEdit();
+  } else if (action === 'edit-images') {
+    enableImageEdit();
+  } else if (action === 'edit-icons') {
+    enableIconEdit();
+  } else if (action === 'edit-effects') {
+    enableEffectsEdit();
+  } else if (action === 'export-json') {
+    exportToJSON();
+  } else if (action === 'import-json') {
+    importFromJSON();
+  }
+}
+
+// Habilitar edición de contenido
+function enableContentEdit() {
+  try {
+    const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+    iframeDoc.querySelectorAll('[data-editable]').forEach(el => {
+      el.setAttribute('contenteditable', 'true');
+      el.style.outline = '2px dashed #3d63db';
+      el.style.padding = '4px';
+      el.style.backgroundColor = 'rgba(61,99,219,0.05)';
+    });
+    isEditMode = 'content';
+    alert('Modo edición activado. Los campos editables están resaltados en azul.');
+  } catch (e) {
+    alert('Error al activar edición: ' + e.message);
+  }
+}
+
+// Habilitar edición de colores
+function enableColorEdit() {
+  try {
+    const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+    iframeDoc.querySelectorAll('[data-color], [style*="color"], [class*="color"], [class*="bg-"]').forEach(el => {
+      el.style.outline = '2px dashed #ffc107';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', handleColorClick);
+    });
+    isEditMode = 'color';
+    alert('Modo edición de colores activado. Haz click en los elementos resaltados en amarillo.');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function handleColorClick(e) {
+  e.preventDefault();
+  const el = e.target;
+  const currentColor = el.style.color || getComputedStyle(el).color;
+  const newColor = prompt('Nuevo color:', currentColor);
+  if (newColor !== null) {
+    el.style.color = newColor;
+  }
+}
+
+// Habilitar edición de imágenes
+function enableImageEdit() {
+  try {
+    const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+    iframeDoc.querySelectorAll('img').forEach(el => {
+      el.style.outline = '2px dashed #28a745';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', handleImageClick);
+    });
+    isEditMode = 'image';
+    alert('Modo edición de imágenes activado. Haz click en las imágenes resaltadas en verde.');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function handleImageClick(e) {
+  e.preventDefault();
+  const el = e.target;
+  const currentSrc = el.src;
+  const newSrc = prompt('Nueva URL de imagen:', currentSrc);
+  if (newSrc && newSrc !== currentSrc) {
+    el.src = newSrc;
+  }
+}
+
+// Habilitar edición de iconos
+function enableIconEdit() {
+  try {
+    const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+    iframeDoc.querySelectorAll('[class*="fa"], [class*="icon"], svg').forEach(el => {
+      el.style.outline = '2px dashed #17a2b8';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', handleIconClick);
+    });
+    isEditMode = 'icon';
+    alert('Modo edición de iconos activado. Haz click en los iconos resaltados en cyan.');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function handleIconClick(e) {
+  e.preventDefault();
+  const el = e.target;
+  const newIcon = prompt('Nuevo icono (clase CSS o HTML):', el.className || el.outerHTML);
+  if (newIcon) {
+    if (newIcon.startsWith('<')) {
+      el.outerHTML = newIcon;
+    } else {
+      el.className = newIcon;
+    }
+  }
+}
+
+// Habilitar edición de efectos
+function enableEffectsEdit() {
+  try {
+    const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+    iframeDoc.querySelectorAll('[data-effect], [class*="shadow"], [class*="glow"], [class*="animate"]').forEach(el => {
+      el.style.outline = '2px dashed #e83e8c';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', handleEffectClick);
+    });
+    isEditMode = 'effect';
+    alert('Modo edición de efectos activado. Haz click en los elementos resaltados en rosa.');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function handleEffectClick(e) {
+  e.preventDefault();
+  const el = e.target;
+  const currentEffect = el.getAttribute('data-effect') || el.style.boxShadow || el.style.animation;
+  const newEffect = prompt('Efecto (shadow, glow, pulse, fade, slide):', currentEffect);
+  if (newEffect !== null) {
+    if (newEffect === '') {
+      el.style.boxShadow = '';
+      el.style.animation = '';
+      el.removeAttribute('data-effect');
+    } else {
+      el.setAttribute('data-effect', newEffect);
+      if (newEffect.includes('shadow')) el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      if (newEffect.includes('glow')) el.style.boxShadow = '0 0 20px rgba(61,99,219,0.5)';
+      if (newEffect.includes('pulse')) el.style.animation = 'pulse 2s infinite';
+      if (newEffect.includes('fade')) el.style.animation = 'fadeIn 1s';
+      if (newEffect.includes('slide')) el.style.animation = 'slideIn 0.5s';
+    }
+  }
+}
+
+// Context menu
+contentFrame.addEventListener('load', () => {
+  try {
+    const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+    iframeDoc.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      selectedElement = e.target;
+
+      // Posicionar menú
+      contextMenu.style.top = e.clientY + 'px';
+      contextMenu.style.left = e.clientX + 'px';
+      contextMenu.classList.add('show');
+
+      return false;
+    });
+
+    // Cerrar menú al hacer click
+    iframeDoc.addEventListener('click', () => {
+      contextMenu.classList.remove('show');
+    });
+  } catch (e) {}
+});
+
+// Acciones del context menu
+document.querySelectorAll('.context-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const action = item.getAttribute('data-action');
+    contextMenu.classList.remove('show');
+
+    if (!selectedElement) return;
+
+    if (action === 'edit-text') {
+      selectedElement.setAttribute('contenteditable', 'true');
+      selectedElement.focus();
+    } else if (action === 'edit-html') {
+      showModal('Editar HTML', `<textarea style="width:100%; height:200px; font-family:monospace;">${selectedElement.outerHTML}</textarea>`, () => {
+        const textarea = modalContent.querySelector('textarea');
+        if (textarea && textarea.value) {
+          try {
+            const temp = document.createElement('div');
+            temp.innerHTML = textarea.value;
+            selectedElement.outerHTML = temp.innerHTML;
+          } catch (e) {
+            alert('Error: HTML inválido');
+          }
+        }
+      });
+    } else if (action === 'edit-style') {
+      const computed = getComputedStyle(selectedElement);
+      const styles = ['color', 'backgroundColor', 'fontSize', 'margin', 'padding', 'border', 'boxShadow'];
+      let html = '';
+      styles.forEach(s => {
+        html += `<div class="modal-field">
+          <label>${s}:</label>
+          <input value="${computed[s] || ''}" data-style="${s}">
+        </div>`;
+      });
+      showModal('Editar Estilos', html, () => {
+        modalContent.querySelectorAll('input[data-style]').forEach(input => {
+          selectedElement.style[input.getAttribute('data-style')] = input.value;
+        });
+      });
+    } else if (action === 'change-image') {
+      const newSrc = prompt('Nueva URL:', selectedElement.src || '');
+      if (newSrc) selectedElement.src = newSrc;
+    } else if (action === 'edit-link') {
+      const newHref = prompt('Nuevo enlace:', selectedElement.href || selectedElement.getAttribute('href') || '');
+      if (newHref) selectedElement.href = newHref;
+    } else if (action === 'change-color') {
+      const newColor = prompt('Nuevo color:', getComputedStyle(selectedElement).color);
+      if (newColor) selectedElement.style.color = newColor;
+    } else if (action === 'delete-element') {
+      if (confirm('¿Estás seguro de eliminar este elemento?')) {
+        selectedElement.remove();
+      }
+    }
+  });
+});
+
+// Cerrar context menu al hacer click fuera
+document.addEventListener('click', (e) => {
+  if (!contextMenu.contains(e.target)) {
+    contextMenu.classList.remove('show');
+  }
+});
+
+// Modal
+function showModal(title, content, onConfirm) {
+  modalTitle.textContent = title;
+  modalContent.innerHTML = content;
+  modalOverlay.classList.add('show');
+
+  modalConfirm.onclick = () => {
+    if (onConfirm) onConfirm();
+    modalOverlay.classList.remove('show');
+  };
+
+  modalCancel.onclick = () => {
+    modalOverlay.classList.remove('show');
+  };
+}
+
+// Guardar cambios
+if (btnSave) {
+  btnSave.addEventListener('click', () => {
+    try {
+      const iframeDoc = contentFrame.contentDocument || contentFrame.contentWindow.document;
+      const pageId = contentFrame.src.split('/').pop().replace('.html', '');
+
+      // Guardar contenido editable
+      const content = {};
+      iframeDoc.querySelectorAll('[data-editable]').forEach(el => {
+        content[el.getAttribute('data-editable')] = el.innerHTML;
+      });
+      if (Object.keys(content).length > 0) {
+        ContentManager.saveContent(pageId, content);
+      }
+
+      // Guardar estilos
+      ContentManager.saveStyles(pageId, {});
+
+      alert('Cambios guardados correctamente.');
+    } catch (e) {
+      alert('Error al guardar: ' + e.message);
+    }
+  });
+}
+
+// Refrescar
+if (btnRefresh) {
+  btnRefresh.addEventListener('click', () => {
+    contentFrame.src = contentFrame.src;
+  });
+}
+
+// Exportar JSON
+function exportToJSON() {
+  const data = ContentManager.getAllContent();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fixlab_content.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Importar JSON
+function importFromJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        localStorage.setItem('fixlab_editable_content', JSON.stringify(data));
+        alert('Contenido importado correctamente.');
+      } catch (e) {
+        alert('Error: Archivo JSON inválido');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// Cargar panel si ya hay sesión
+if (localStorage.getItem(ADMIN_SESSION_KEY) === 'true') {
+  if (loginWrapper) loginWrapper.style.display = 'none';
+  if (adminWrapper) adminWrapper.style.display = 'flex';
+  loadDashboard();
+}
+
