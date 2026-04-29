@@ -161,20 +161,12 @@ body::before {
   height: auto;
   object-fit: contain;
   border-radius: 10px;
+  transition: filter 0.3s ease, transform 0.3s ease;
 }
 
-.brand-text {
-  font-family: "Orbitron", sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 0.04em;
-  color: var(--text);
-  transition: color 0.3s ease, text-shadow 0.3s ease;
-}
-
-.brand:hover .brand-text {
-  color: var(--neon-yellow);
-  text-shadow: var(--glow-yellow);
+.brand:hover .brand-logo {
+  filter: drop-shadow(0 0 20px rgba(245,230,66,0.8)) drop-shadow(0 0 40px rgba(245,230,66,0.4)) brightness(1.2);
+  transform: scale(1.05);
 }
 
 .brand {
