@@ -2,113 +2,21 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seguimiento de reparación | FixLab S.L.</title>
-  <meta name="description" content="Consulta el estado de tu reparación en FixLab S.L.">
-  <link rel="icon" type="image/png" href="Logo_FixLab.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>Crear cuenta | FixLab S.L.</title>
+  <meta name="description" content="Crea tu cuenta en FixLab S.L. para gestionar tus reparaciones.">
+  <link rel="icon" type="image/png" href="Fotos/FixLab_Logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .tracking-result {
-      margin-top: 1.5rem;
-      padding: 1.5rem;
-      border-radius: 10px;
-      background: #1E1B2E;
-      border: 1px solid rgba(155,77,255,.3);
-      border-left: 4px solid #F5E642;
-    }
-    .tracking-result[hidden] { display: none; }
-
-    .tracking-result-title {
-      font-size: .85rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .08em;
-      color: #F5E642; margin: 0 0 1rem;
-    }
-
-    .tracking-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: .75rem; margin-bottom: 1.2rem;
-    }
-    .tracking-field {
-      background: rgba(10,8,20,.4);
-      border: 1px solid rgba(155,77,255,.2);
-      border-radius: 6px; padding: .7rem .9rem;
-    }
-    .tracking-field-label {
-      font-size: .72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .08em;
-      color: #9A96B8; margin-bottom: .25rem;
-    }
-    .tracking-field-value {
-      font-size: .95rem; font-weight: 600; color: #F0EEF8;
-    }
-
-    .tracking-status {
-      display: inline-flex; align-items: center; gap: .4rem;
-      padding: .38rem .9rem; border-radius: 999px;
-      font-size: .82rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .06em;
-    }
-    .status-recibida {
-      background: rgba(155,77,255,.12);
-      border: 1px solid rgba(155,77,255,.35);
-      color: #C084FC;
-    }
-    .status-proceso {
-      background: rgba(245,230,66,.1);
-      border: 1px solid rgba(245,230,66,.35);
-      color: #F5E642;
-    }
-    .status-listo {
-      background: rgba(74,222,128,.1);
-      border: 1px solid rgba(74,222,128,.35);
-      color: #4ade80;
-    }
-    .status-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: currentColor;
-      animation: blink 1.4s ease-in-out infinite;
-    }
-    .status-listo .status-dot { animation: none; }
-    @keyframes blink {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:.4; transform:scale(.75); }
-    }
-
-    .tracking-not-found {
-      margin-top: 1.4rem; padding: 1.1rem 1.3rem;
-      background: rgba(255,45,120,.07);
-      border: 1px solid rgba(255,45,120,.28);
-      border-radius: 8px;
-      color: #FF6B9D; font-weight: 600; font-size: .93rem;
-      display: none;
-    }
-
-    .tracking-hint {
-      margin-top: 2rem; padding: 1rem 1.2rem;
-      background: rgba(245,230,66,.05);
-      border: 1px solid rgba(245,230,66,.18);
-      border-radius: 8px;
-      font-size: .87rem; color: #9A96B8; line-height: 1.65;
-    }
-    .tracking-hint strong { color: #F5E642; }
-    .tracking-hint a { color: #F5E642; }
-
-    @media (max-width: 600px) {
-      .tracking-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
   <header class="site-header">
     <nav class="container nav">
-      <a class="brand" href="index.html">
-        <img src="Logo_FixLab.png" alt="Logo FixLab" class="brand-logo">
-        <span>FixLab S.L.</span>
-      </a>
+       <a class="brand" href="index.html">
+         <img src="Fotos/FixLab_Logo.png" alt="Logo FixLab" class="brand-logo">
+       </a>
       <button id="menuToggle" class="menu-toggle" aria-label="Abrir menú">Menú</button>
       <ul id="navLinks" class="nav-links">
         <li><a href="index.html">Inicio</a></li>
@@ -122,85 +30,35 @@
   </header>
 
   <main class="page-main">
-    <section class="section section-soft">
+    <section class="section">
       <div class="container">
-
-        <h1 class="section-title">Seguimiento de reparación</h1>
-        <p class="section-subtitle">
-          Introduce el código que recibiste al hacer tu reserva y tu número de teléfono.
-        </p>
-
-        <form id="trackingForm" class="contact-form" novalidate>
+        <h1 class="section-title">Crear cuenta</h1>
+        <p class="section-subtitle">Regístrate para gestionar tus solicitudes de reparación y seguimiento.</p>
+        <form id="registerForm" class="contact-form" novalidate>
           <div class="field">
-            <label for="trackingCode">Código de reparación</label>
-            <input id="trackingCode" name="trackingCode" type="text"
-                   placeholder="Ejemplo: FL-2025-1842" required
-                   style="text-transform:uppercase;letter-spacing:.06em;">
+            <label for="name">Nombre completo</label>
+            <input id="name" name="name" type="text" required>
           </div>
           <div class="field">
-            <label for="trackingPhone">Teléfono asociado</label>
-            <input id="trackingPhone" name="trackingPhone" type="tel"
-                   placeholder="Ejemplo: 600123123" required>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required>
           </div>
-          <button class="btn btn-primary" type="submit">Consultar estado</button>
-          <p id="trackingMessage" class="form-message" aria-live="polite"></p>
+          <div class="field">
+            <label for="phone">Teléfono</label>
+            <input id="phone" name="phone" type="tel" required>
+          </div>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" name="password" type="password" required minlength="6">
+          </div>
+          <div class="field">
+            <label for="confirmPassword">Confirmar contraseña</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" required minlength="6">
+          </div>
+          <button class="btn btn-primary" type="submit">Crear cuenta</button>
+          <a class="btn btn-secondary" href="login.html">Ya tengo cuenta</a>
+          <p id="registerMessage" class="form-message" aria-live="polite"></p>
         </form>
-
-        <!-- Resultado -->
-        <article id="trackingResult" class="tracking-result" hidden>
-          <p class="tracking-result-title">Estado de tu reparación</p>
-          <div class="tracking-grid">
-            <div class="tracking-field">
-              <div class="tracking-field-label">Código</div>
-              <div class="tracking-field-value" id="resCode">—</div>
-            </div>
-            <div class="tracking-field">
-              <div class="tracking-field-label">Fecha de entrada</div>
-              <div class="tracking-field-value" id="resDate">—</div>
-            </div>
-            <div class="tracking-field">
-              <div class="tracking-field-label">Nombre</div>
-              <div class="tracking-field-value" id="resName">—</div>
-            </div>
-            <div class="tracking-field">
-              <div class="tracking-field-label">Servicio</div>
-              <div class="tracking-field-value" id="resService">—</div>
-            </div>
-            <div class="tracking-field">
-              <div class="tracking-field-label">Tienda</div>
-              <div class="tracking-field-value" id="resStore">—</div>
-            </div>
-            <div class="tracking-field">
-              <div class="tracking-field-label">Prioridad</div>
-              <div class="tracking-field-value" id="resUrgency">—</div>
-            </div>
-          </div>
-          <div class="tracking-field-label"
-               style="font-size:.72rem;font-weight:700;text-transform:uppercase;
-                      letter-spacing:.08em;color:#9A96B8;margin-bottom:.6rem;">
-            Estado actual
-          </div>
-          <span class="tracking-status status-recibida" id="resStatus">
-            <span class="status-dot"></span> Recibida
-          </span>
-        </article>
-
-        <!-- No encontrado -->
-        <div id="trackingNotFound" class="tracking-not-found">
-          No hemos encontrado ninguna reparación con ese código y teléfono.
-          Comprueba los datos o
-          <a href="https://wa.me/34600000000" target="_blank"
-             style="color:#FF6B9D;">escríbenos por WhatsApp</a>.
-        </div>
-
-        <!-- Ayuda -->
-        <div class="tracking-hint">
-          <strong>¿No tienes tu código?</strong> El código se genera automáticamente
-          al enviar tu reserva y aparece en el pop-up de confirmación. Si no lo guardaste,
-          escríbenos por <a href="https://wa.me/34600000000" target="_blank">WhatsApp</a>
-          o llámanos y te lo buscamos.
-        </div>
-
       </div>
     </section>
   </main>
@@ -209,87 +67,68 @@
     <div class="container footer-grid">
       <p>FixLab S.L. - Reparación de móviles en Valladolid</p>
       <nav class="footer-links" aria-label="Enlaces del pie">
-        <a href="index.html">Inicio</a>
-        <a href="servicios.html">Servicios</a>
-        <a href="tiendas.html">Tiendas físicas</a>
-        <a href="tienda.html">Tienda</a>
-        <a href="contacto.html">Contacto</a>
-        <a href="aviso-legal.html">Aviso legal</a>
-        <a href="politica-privacidad.html">Privacidad</a>
-        <a href="politica-cookies.html">Cookies</a>
+        <a href="index.html">Inicio</a><a href="servicios.html">Servicios</a><a href="tiendas.html">Tiendas físicas</a><a href="tienda.html">Tienda</a><a href="contacto.html">Contacto</a><a href="aviso-legal.html">Aviso legal</a><a href="politica-privacidad.html">Privacidad</a><a href="politica-cookies.html">Cookies</a>
       </nav>
-      <p>Dos tiendas en Valladolid: Río Shopping y Calle Acibelas, 9<br>
-         © <span id="year"></span> FixLab S.L.</p>
+      <p>Tres tiendas: Valladolid (Río Shopping y Calle Acibelas, 9) y Burgos (Calle Santiago Apóstol, 31)<br>© <span id="year"></span> FixLab S.L.</p>
     </div>
   </footer>
-
-  <a class="whatsapp-float"
-     href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n."
-     target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">WhatsApp</a>
-
+  <a class="whatsapp-float" href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>
   <script src="script.js"></script>
   <script>
-    var STATUS_CLASS = {
-      "Recibida":   "status-recibida",
-      "En proceso": "status-proceso",
-      "Listo":      "status-listo",
-    };
+    const registerForm = document.getElementById("registerForm");
+    const registerMessage = document.getElementById("registerMessage");
+    const USERS_KEY = "fixlabUsers";
+    const SESSION_KEY = "fixlabSessionUser";
 
-    // Autorellenar si viene ?code=FL-XXXX desde el pop-up
-    var params   = new URLSearchParams(window.location.search);
-    var codeParam = params.get("code");
-    if (codeParam) {
-      document.getElementById("trackingCode").value = codeParam.toUpperCase();
-    }
-
-    var tForm    = document.getElementById("trackingForm");
-    var tMsg     = document.getElementById("trackingMessage");
-    var tResult  = document.getElementById("trackingResult");
-    var tNotFound= document.getElementById("trackingNotFound");
-
-    tForm.addEventListener("submit", function(e) {
+    registerForm.addEventListener("submit", function(e) {
       e.preventDefault();
+      
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const phone = document.getElementById("phone").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const confirmPassword = document.getElementById("confirmPassword").value.trim();
 
-      var code  = document.getElementById("trackingCode").value.trim().toUpperCase();
-      var phone = document.getElementById("trackingPhone").value.trim();
-
-      if (!code || !phone) {
-        tMsg.textContent = "Introduce el código y el teléfono.";
-        tMsg.style.color = "#FF2D78";
+      if (!name || !email || !phone || !password || !confirmPassword) {
+        registerMessage.textContent = "Completa todos los campos.";
+        registerMessage.style.color = "#b1416f";
         return;
       }
 
-      tMsg.textContent = "";
-      tResult.hidden = true;
-      tNotFound.style.display = "none";
+      if (password.length < 6) {
+        registerMessage.textContent = "La contraseña debe tener al menos 6 caracteres.";
+        registerMessage.style.color = "#b1416f";
+        return;
+      }
 
-      var reservations = JSON.parse(localStorage.getItem("fixlabReservations") || "[]");
-      var found = reservations.find(function(r) {
-        return r.code === code &&
-               r.phone.replace(/\s/g,"") === phone.replace(/\s/g,"");
+      if (password !== confirmPassword) {
+        registerMessage.textContent = "Las contraseñas no coinciden.";
+        registerMessage.style.color = "#b1416f";
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+      const alreadyExists = users.some(function(user) {
+        return user.email === email;
       });
 
-      if (found) {
-        document.getElementById("resCode").textContent    = found.code    || "—";
-        document.getElementById("resDate").textContent    = found.date    || "—";
-        document.getElementById("resName").textContent    = found.name    || "—";
-        document.getElementById("resService").textContent = found.service || "—";
-        document.getElementById("resStore").textContent   = found.store   || "—";
-        document.getElementById("resUrgency").textContent = found.urgency || "—";
-
-        var statusEl  = document.getElementById("resStatus");
-        var statusTxt = found.status || "Recibida";
-
-        // Limpiar clases previas
-        Object.values(STATUS_CLASS).forEach(function(c) { statusEl.classList.remove(c); });
-        statusEl.classList.add(STATUS_CLASS[statusTxt] || "status-recibida");
-        statusEl.innerHTML = '<span class="status-dot"></span> ' + statusTxt;
-
-        tResult.hidden = false;
-        tResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      } else {
-        tNotFound.style.display = "block";
+      if (alreadyExists) {
+        registerMessage.textContent = "Ya existe una cuenta con ese email.";
+        registerMessage.style.color = "#b1416f";
+        return;
       }
+
+      users.push({ name: name, email: email, phone: phone, password: password });
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      
+      localStorage.setItem(SESSION_KEY, email);
+      localStorage.setItem("fixlabUserPhone", phone);
+      registerMessage.textContent = "Cuenta creada correctamente.";
+      registerMessage.style.color = "#3d63db";
+      
+      setTimeout(function() {
+        window.location.href = "index.html";
+      }, 700);
     });
   </script>
 </body>

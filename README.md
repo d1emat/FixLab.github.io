@@ -9,8 +9,8 @@ Sitio web estatico de **FixLab S.L.** para reparacion de moviles, reserva de ser
 
 ## Funcionalidades
 
-- Landing corporativa con diseno responsive.
-- Paginas de servicios, tiendas fisicas, contacto y secciones legales.
+- Landing corporativa con diseño responsive.
+- Paginas de servicios, tiendas físicas (Valladolid + Burgos), contacto y secciones legales.
 - Formularios de contacto/reserva con envio por EmailJS.
 - Login y registro en cliente con `localStorage` (entorno demo).
 - Tienda con filtros por tipo, marca, texto y precio maximo.
@@ -30,6 +30,9 @@ FixLab.github.io/
 |- index.html
 |- servicios.html
 |- tiendas.html
+|- tienda-rio-shopping.html
+|- tienda-centro.html
+|- tienda-burgos.html
 |- tienda.html
 |- producto.html
 |- reserva.html
@@ -37,6 +40,8 @@ FixLab.github.io/
 |- contacto.html
 |- login.html
 |- registro.html
+|- seguimiento.html
+|- valoracion.html
 |- aviso-legal.html
 |- politica-privacidad.html
 |- politica-cookies.html

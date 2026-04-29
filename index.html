@@ -2,30 +2,30 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FixLab S.L. | Reparación profesional de móviles en Valladolid</title>
-  <meta name="description" content="FixLab S.L. ofrece reparación profesional de móviles en Valladolid, diagnóstico gratuito, tiendas físicas, reacondicionados con garantía y accesorios.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>FixLab | Reparación profesional de móviles</title>
+  <meta name="description" content="FixLab - Reparación de móviles en Valladolid y Burgos. Diagnóstico gratuito.">
+  <link rel="icon" type="image/png" href="Fotos/FixLab_Logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body class="home-page">
   <header class="site-header">
     <nav class="container nav">
       <a class="brand" href="index.html" aria-label="Ir a inicio">
-        <img src="Logo_FixLab.png" alt="Logo FixLab" class="brand-logo">
-        <span>FixLab S.L.</span>
+        <img src="Fotos/FixLab_Logo.png" alt="Logo FixLab" class="brand-logo">
       </a>
       <button id="menuToggle" class="menu-toggle" aria-label="Abrir menú">Menú</button>
       <ul id="navLinks" class="nav-links">
         <li><a href="index.html" class="active">Inicio</a></li>
         <li><a href="servicios.html">Servicios</a></li>
-        <li><a href="tiendas.html">Tiendas físicas</a></li>
+        <li><a href="tiendas.html">Tiendas</a></li>
         <li><a href="tienda.html">Tienda</a></li>
         <li><a href="contacto.html">Contacto</a></li>
       </ul>
-      <a class="btn btn-login" href="login.html">Iniciar sesión</a>
+      <a class="btn btn-login" href="login.html">Login</a>
     </nav>
   </header>
 
@@ -33,148 +33,122 @@
     <section class="hero reveal">
       <div class="container hero-grid">
         <div class="hero-content">
-          <p class="section-subtitle">Especialistas en arreglar pantallas, sustituir baterías y solucionar cualquier fallo técnico.</p>
-          <h1>Reparación profesional de móviles en Valladolid</h1>
-          <p>
-            Arreglamos pantallas, baterías, conectores, cámaras y daños por agua.
-            Diagnóstico gratuito en nuestras dos tiendas.
-          </p>
+          <h1>Reparación de móviles</h1>
+          <div class="hero-badges">
+            <span class="badge-item">Todas las marcas</span>
+            <span class="badge-item">Rápido</span>
+            <span class="badge-item">Garantía</span>
+          </div>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="reserva.html">Reservar reparación</a>
+            <a class="btn btn-primary" href="reserva.html">Reservar</a>
             <a class="btn btn-secondary" href="servicios.html">Ver servicios</a>
           </div>
-          <ul class="hero-highlights" aria-label="Ventajas principales de FixLab">
-            <li>Diagnóstico gratuito</li>
-            <li>Garantía en reparaciones</li>
-            <li>Repuestos de calidad</li>
-          </ul>
         </div>
-        <aside class="hero-visual crt-effect" aria-label="Técnico reparando un móvil en taller">
-          <img id="heroPhoneImage" src="Imagenes%20tienda/Foto_s24.png" alt="Móvil premium reacondicionado en FixLab" class="hero-image">
-          <div class="visual-card visual-overlay">
-            <p class="visual-title">Calidad profesional</p>
-            <p>Resultados rápidos con repuestos de calidad y garantía FixLab.</p>
-          </div>
+        <aside class="hero-visual">
+          <img id="heroPhoneImage" src="Fotos/samsung.webp" alt="Samsung" class="hero-image" width="300" height="400" loading="eager">
         </aside>
       </div>
     </section>
 
-    <section class="section stats-strip reveal" aria-label="Datos destacados de FixLab">
+    <section class="stats-strip reveal">
       <div class="container stats-grid">
-        <article class="stat-card">
+        <div class="stat-card">
           <p class="stat-value">+4.500</p>
-          <p class="stat-label">Reparaciones realizadas</p>
-        </article>
-        <article class="stat-card">
+          <p class="stat-label">Reparaciones</p>
+        </div>
+        <div class="stat-card">
           <p class="stat-value">24-48h</p>
-          <p class="stat-label">Plazo habitual de reparación</p>
-        </article>
-        <article class="stat-card">
+          <p class="stat-label">Tiempo medio</p>
+        </div>
+        <div class="stat-card">
           <p class="stat-value">12 meses</p>
-          <p class="stat-label">Garantía en móviles reacondicionados</p>
-        </article>
+          <p class="stat-label">Garantía</p>
+        </div>
       </div>
     </section>
 
     <section id="servicios" class="section reveal">
       <div class="container">
-        <h2 class="section-title">Servicios de Reparación</h2>
-        <p class="section-subtitle">
-          En FixLab ofrecemos soluciones expertas para devolverle la vida a tu dispositivo móvil con técnicos cualificados y repuestos de calidad.
-        </p>
+        <h2 class="section-title">Servicios</h2>
+        <div class="services-highlight">
+          <span class="services-text"><strong>Diagnóstico gratuito</strong></span>
+        </div>
         <div class="cards-grid">
-          <a class="card reveal card-link" href="servicio-pantalla.html">
-            <h3>Reparación de pantalla</h3>
-            <p>Sustitución de paneles y cristales táctiles con acabados originales y garantía.</p>
-            <p class="price-tag">Desde 69 EUR</p>
-            <p>Haz clic para ver más información.</p>
+          <a class="card card-link" href="servicio-pantalla.html">
+            <div class="card-service-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">P</div>
+            <h3>Pantalla</h3>
+            <p class="price-tag">Desde 69€</p>
           </a>
-          <a class="card reveal card-link" href="servicio-camara.html">
-            <h3>Reparación de cámara</h3>
-            <p>Solucionamos fallos de enfoque y averías en cámara frontal y trasera.</p>
-            <p class="price-tag">Desde 55 EUR</p>
-            <p>Haz clic para ver más información.</p>
+          <a class="card card-link" href="servicio-bateria.html">
+            <div class="card-service-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">B</div>
+            <h3>Batería</h3>
+            <p class="price-tag">Desde 49€</p>
           </a>
-          <a class="card reveal card-link" href="servicio-bateria.html">
-            <h3>Cambio de batería</h3>
-            <p>Recupera autonomía con baterías certificadas y revisión completa del equipo.</p>
-            <p class="price-tag">Desde 49 EUR</p>
-            <p>Haz clic para ver más información.</p>
+          <a class="card card-link" href="servicio-camara.html">
+            <div class="card-service-icon" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">C</div>
+            <h3>Cámara</h3>
+            <p class="price-tag">Desde 55€</p>
           </a>
-          <a class="card reveal card-link" href="servicio-agua.html">
-            <h3>Daños por agua</h3>
-            <p>Tratamiento de desoxidación y diagnóstico técnico tras contacto con líquidos.</p>
-            <p class="price-tag">Desde 59 EUR</p>
-            <p>Haz clic para ver más información.</p>
+          <a class="card card-link" href="servicio-agua.html">
+            <div class="card-service-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">A</div>
+            <h3>Agua</h3>
+            <p class="price-tag">Desde 59€</p>
           </a>
         </div>
-        <p class="badge">Diagnóstico gratuito en todas las reparaciones</p>
-      </div>
-    </section>
-
-    <section id="tiendas" class="section section-soft reveal">
-      <div class="container">
-        <h2 class="section-title">Nuestras Tiendas</h2>
-        <p class="section-subtitle">Visítanos en cualquiera de nuestras ubicaciones en Valladolid para reparación en el acto.</p>
-        <div class="shop-grid">
-          <a class="shop-card reveal shop-card-link" href="tienda-rio-shopping.html">
-            <h3>FixLab Río Shopping</h3>
-            <img src="Kiosko Rio Shopping.webp" alt="Kiosko FixLab en Río Shopping" class="card-image">
-            <p><strong>Dirección:</strong> Av. de Madrid, 25</p>
-            <p><strong>Horario:</strong> Lunes a Sábado: 10:00 - 22:00</p>
-            <p class="price-tag">Diagnóstico en tienda: Gratis</p>
-            <p>Haz clic para ver más información.</p>
-          </a>
-          <a class="shop-card reveal shop-card-link" href="tienda-centro.html">
-            <h3>FixLab Centro</h3>
-            <img src="Local calle acibelas nº9.webp" alt="Tienda FixLab en Calle Acibelas 9" class="card-image">
-            <p><strong>Dirección:</strong> Calle Acibelas, 9</p>
-            <p><strong>Horario:</strong> L-V: 10:00-14:00 / 17:00-20:00 · Sábados: 10:00-14:00</p>
-            <p class="price-tag">Protector + instalación: Desde 12 EUR</p>
-            <p>Haz clic para ver más información.</p>
-          </a>
-        </div>
+        <a href="servicios.html" class="btn btn-secondary" style="margin-top: 1rem;">Ver todos los servicios</a>
       </div>
     </section>
 
     <section class="section section-soft reveal">
       <div class="container">
-        <h2 class="section-title">Contacto</h2>
-        <p class="section-subtitle">Escríbenos para cualquier consulta. Te ayudamos con presupuesto sin compromiso.</p>
-        <p><a class="btn btn-primary" href="contacto.html">Enviar consulta</a></p>
+        <h2 class="section-title">Nuestras Tiendas</h2>
+        <div class="shop-grid">
+          <a class="shop-card shop-card-link" href="tienda-rio-shopping.html">
+            <img src="Kiosko Rio Shopping.webp" alt="FixLab Río Shopping" class="card-image" loading="lazy">
+            <h3>Río Shopping</h3>
+            <p>Av. de Madrid, 25</p>
+            <span class="price-tag">Gratis diagnóstico</span>
+          </a>
+          <a class="shop-card shop-card-link" href="tienda-centro.html">
+            <img src="Local calle acibelas nº9.webp" alt="FixLab Centro" class="card-image" loading="lazy">
+            <h3>Centro</h3>
+            <p>Calle Acibelas, 9</p>
+            <span class="price-tag">Protector 12€</span>
+          </a>
+          <a class="shop-card shop-card-link" href="tienda-burgos.html">
+            <img src="tienda-burgos-fachada.webp" alt="FixLab Burgos" class="card-image">
+            <h3>Burgos</h3>
+            <p>Santiago Apóstol, 31</p>
+            <span class="price-tag">80m²</span>
+          </a>
+        </div>
       </div>
     </section>
 
-    <section class="cta-strip reveal" aria-label="Llamada a la acción">
+    <section class="cta-strip reveal">
       <div class="container cta-content">
-        <p>¿Tu móvil se ha roto? Te lo reparamos rápido y con garantía.</p>
-        <a class="btn btn-light" href="reserva.html">Pide tu cita ahora</a>
+        <p>¿Te ha pasado algo a tu móvil?</p>
+        <a class="btn btn-light" href="reserva.html">Reservar reparación</a>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container footer-grid">
-      <p>FixLab S.L. - Reparación de móviles en Valladolid</p>
-      <nav class="footer-links" aria-label="Enlaces del pie">
+    <div class="container">
+      <nav class="footer-links">
         <a href="index.html">Inicio</a>
         <a href="servicios.html">Servicios</a>
-        <a href="tiendas.html">Tiendas físicas</a>
+        <a href="tiendas.html">Tiendas</a>
         <a href="tienda.html">Tienda</a>
         <a href="contacto.html">Contacto</a>
-        <a href="aviso-legal.html">Aviso legal</a>
-        <a href="politica-privacidad.html">Privacidad</a>
-        <a href="politica-cookies.html">Cookies</a>
+        <a href="aviso-legal.html">Legal</a>
       </nav>
-      <p>
-        Dos tiendas en Valladolid: Río Shopping y Calle Acibelas, 9<br>
-        © <span id="year"></span> FixLab S.L.
-      </p>
+      <p>© <span id="year"></span> FixLab</p>
     </div>
   </footer>
 
   <a class="whatsapp-float" href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
-    WhatsApp
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
   </a>
 
   <script src="script.js"></script>

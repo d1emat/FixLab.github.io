@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>Reserva tu cita | FixLab S.L.</title>
   <meta name="description" content="Reserva tu reparación de móvil en FixLab S.L. de forma rápida y sencilla.">
-  <link rel="icon" type="image/png" href="Logo_FixLab.png">
+  <link rel="icon" type="image/png" href="Fotos/FixLab_Logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
   <style>
     /* ══ POP-UP ══════════════════════════════════════════════ */
     .popup-overlay {
@@ -225,10 +225,9 @@
 <body>
   <header class="site-header">
     <nav class="container nav">
-      <a class="brand" href="index.html">
-        <img src="Logo_FixLab.png" alt="Logo FixLab" class="brand-logo">
-        <span>FixLab S.L.</span>
-      </a>
+       <a class="brand" href="index.html">
+         <img src="Fotos/FixLab_Logo.png" alt="Logo FixLab" class="brand-logo">
+       </a>
       <button id="menuToggle" class="menu-toggle" aria-label="Abrir menú">Menú</button>
       <ul id="navLinks" class="nav-links">
         <li><a href="index.html">Inicio</a></li>
@@ -302,6 +301,7 @@
               <option value="">Selecciona tienda</option>
               <option>FixLab Río Shopping</option>
               <option>FixLab Centro</option>
+              <option>FixLab Burgos</option>
             </select>
           </div>
           <div class="field field-full">
@@ -313,21 +313,6 @@
           <button class="btn btn-primary" type="submit">Enviar reserva</button>
           <p id="reservationMessage" class="form-message" aria-live="polite"></p>
         </form>
-
-        <!-- ── CTA → VALORACIÓN ── -->
-        <div class="valoracion-cta reveal">
-          <div class="valoracion-cta-text">
-            <div class="val-cta-stars">
-              <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-            </div>
-            <span class="valoracion-cta-badge">Valoración del servicio</span>
-            <h2>¿Ya recogiste tu móvil?</h2>
-            <p>Tu opinión nos ayuda a mejorar. Cuéntanos tu experiencia en menos de un minuto.</p>
-          </div>
-          <a href="valoracion.html" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0;">
-            Dejar mi valoración
-          </a>
-        </div>
 
       </div>
     </section>
@@ -346,14 +331,14 @@
         <a href="politica-privacidad.html">Privacidad</a>
         <a href="politica-cookies.html">Cookies</a>
       </nav>
-      <p>Dos tiendas en Valladolid: Río Shopping y Calle Acibelas, 9<br>
+      <p>Tres tiendas: Valladolid (Río Shopping y Calle Acibelas, 9) y Burgos (Calle Santiago Apóstol, 31)<br>
          © <span id="year"></span> FixLab S.L.</p>
     </div>
   </footer>
 
   <a class="whatsapp-float"
      href="https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n."
-     target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">WhatsApp</a>
+     target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>
 
   <!-- ══ POP-UP DE CONFIRMACIÓN ══════════════════════════════ -->
   <div class="popup-overlay" id="confirmPopup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
@@ -388,15 +373,6 @@
       </p>
 
       <div class="popup-actions">
-        <a href="seguimiento.html" class="popup-btn-primary" id="goToTracking">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          Ver estado de mi reparación
-        </a>
         <button class="popup-btn-secondary" id="popupCloseBottom" type="button">
           Cerrar
         </button>
@@ -407,97 +383,92 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="script.js"></script>
   <script>
-    function generateTrackingCode() {
-      var year = new Date().getFullYear();
-      var rand = Math.floor(1000 + Math.random() * 9000);
-      return "FL-" + year + "-" + rand;
-    }
+    document.addEventListener("DOMContentLoaded", function() {
+      // Popup logic
+      var popup     = document.getElementById("confirmPopup");
+      var codeEl    = document.getElementById("popupCode");
+      var closeBtn  = document.getElementById("popupClose");
+      var closeBot  = document.getElementById("popupCloseBottom");
+      var copyBtn   = document.getElementById("copyCodeBtn");
 
-    var popup     = document.getElementById("confirmPopup");
-    var codeEl    = document.getElementById("popupCode");
-    var closeBtn  = document.getElementById("popupClose");
-    var closeBot  = document.getElementById("popupCloseBottom");
-    var copyBtn   = document.getElementById("copyCodeBtn");
-    var trackLink = document.getElementById("goToTracking");
-
-    function openPopup(code) {
-      codeEl.textContent = code;
-      trackLink.href = "seguimiento.html?code=" + encodeURIComponent(code);
-      popup.classList.add("active");
-      document.body.style.overflow = "hidden";
-    }
-    function closePopup() {
-      popup.classList.remove("active");
-      document.body.style.overflow = "";
-    }
-
-    closeBtn.addEventListener("click", closePopup);
-    closeBot.addEventListener("click", closePopup);
-    popup.addEventListener("click", function(e) { if (e.target === popup) closePopup(); });
-    document.addEventListener("keydown", function(e) { if (e.key === "Escape") closePopup(); });
-
-    copyBtn.addEventListener("click", function() {
-      navigator.clipboard.writeText(codeEl.textContent).then(function() {
-        copyBtn.textContent = "¡Copiado!";
-        copyBtn.classList.add("copied");
-        setTimeout(function() {
-          copyBtn.textContent = "Copiar";
-          copyBtn.classList.remove("copied");
-        }, 2000);
-      });
-    });
-
-    var oldForm = document.getElementById("reservationForm");
-    var newForm = oldForm.cloneNode(true);
-    oldForm.parentNode.replaceChild(newForm, oldForm);
-
-    newForm.addEventListener("submit", async function(e) {
-      e.preventDefault();
-
-      var name    = newForm.querySelector("#name").value.trim();
-      var email   = newForm.querySelector("#email").value.trim();
-      var phone   = newForm.querySelector("#phone").value.trim();
-      var brand   = newForm.querySelector("#deviceBrand").value.trim();
-      var service = newForm.querySelector("#service").value.trim();
-      var urgency = newForm.querySelector("#urgency").value.trim();
-      var store   = newForm.querySelector("#preferredStore").value.trim();
-      var message = newForm.querySelector("#message").value.trim();
-      var msgEl   = newForm.querySelector("#reservationMessage");
-
-      if (!name || !phone || !service) {
-        msgEl.textContent = "Completa al menos nombre, teléfono y servicio.";
-        msgEl.style.color = "#FF2D78";
-        return;
+      function openPopup(code) {
+        codeEl.textContent = code;
+        popup.classList.add("active");
+        document.body.style.overflow = "hidden";
+      }
+      function closePopup() {
+        popup.classList.remove("active");
+        document.body.style.overflow = "";
       }
 
-      msgEl.textContent = "Enviando reserva...";
-      msgEl.style.color = "#9A96B8";
+      closeBtn.addEventListener("click", closePopup);
+      closeBot.addEventListener("click", closePopup);
+      popup.addEventListener("click", function(e) { if (e.target === popup) closePopup(); });
+      document.addEventListener("keydown", function(e) { if (e.key === "Escape") closePopup(); });
 
-      var code = generateTrackingCode();
-
-      var reservations = JSON.parse(localStorage.getItem("fixlabReservations") || "[]");
-      reservations.push({
-        code: code, phone: phone, name: name, email: email,
-        brand: brand, service: service, urgency: urgency,
-        store: store, status: "Recibida",
-        date: new Date().toLocaleDateString("es-ES"),
+      copyBtn.addEventListener("click", function() {
+        navigator.clipboard.writeText(codeEl.textContent).then(function() {
+          copyBtn.textContent = "¡Copiado!";
+          copyBtn.classList.add("copied");
+          setTimeout(function() {
+            copyBtn.textContent = "Copiar";
+            copyBtn.classList.remove("copied");
+          }, 2000);
+        });
       });
-      localStorage.setItem("fixlabReservations", JSON.stringify(reservations));
 
-      try {
-        if (window.emailjs) {
-          await window.emailjs.send("service_hzb1vrj", "template_281cd6n", {
-            from_name: name, from_email: email || "reserva@fixlab.local",
-            phone: phone, service: service,
-            message: (message || "Sin detalles.") + "\n\nCódigo: " + code,
-            form_type: "Reserva", tracking_code: code,
+      // Reservation form logic
+      var form = document.getElementById("reservationForm");
+      if (form) {
+        form.addEventListener("submit", async function(e) {
+          e.preventDefault();
+
+          var name    = form.querySelector("#name").value.trim();
+          var email   = form.querySelector("#email").value.trim();
+          var phone   = form.querySelector("#phone").value.trim();
+          var brand   = form.querySelector("#deviceBrand").value.trim();
+          var service = form.querySelector("#service").value.trim();
+          var urgency = form.querySelector("#urgency").value.trim();
+          var store   = form.querySelector("#preferredStore").value.trim();
+          var message = form.querySelector("#message").value.trim();
+          var msgEl   = form.querySelector("#reservationMessage");
+
+          if (!name || !phone || !service) {
+            msgEl.textContent = "Completa al menos nombre, teléfono y servicio.";
+            msgEl.style.color = "#FF2D78";
+            return;
+          }
+
+          msgEl.textContent = "Enviando reserva...";
+          msgEl.style.color = "#9A96B8";
+
+          var code = "FL-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000);
+
+          var reservations = JSON.parse(localStorage.getItem("fixlabReservations") || "[]");
+          reservations.push({
+            code: code, phone: phone, name: name, email: email,
+            brand: brand, service: service, urgency: urgency,
+            store: store, status: "Recibida",
+            date: new Date().toLocaleDateString("es-ES"),
           });
-        }
-      } catch (_) {}
+          localStorage.setItem("fixlabReservations", JSON.stringify(reservations));
 
-      msgEl.textContent = "";
-      newForm.reset();
-      openPopup(code);
+          try {
+            if (window.emailjs) {
+              await window.emailjs.send("service_hzb1vrj", "template_281cd6n", {
+                from_name: name, from_email: email || "reserva@fixlab.local",
+                phone: phone, service: service,
+                message: (message || "Sin detalles.") + "\nCódigo: " + code,
+                form_type: "Reserva", tracking_code: code,
+              });
+            }
+          } catch (_) {}
+
+          msgEl.textContent = "";
+          form.reset();
+          openPopup(code);
+        });
+      }
     });
   </script>
 </body>

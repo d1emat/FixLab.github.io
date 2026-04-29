@@ -42,14 +42,11 @@ const EMAILJS_TEMPLATE_ID = "template_wxzr0ri";
 const FIXLAB_TARGET_EMAIL = "FixLabCyL@gmail.com";
 const WEB3FORMS_ACCESS_KEY = "030271c2-e0d6-4f8c-97e1-6b3d78ffc154";
 const WEB3FORMS_API_URL = "https://api.web3forms.com/submit";
-const RESERVATION_TICKETS_KEY = "fixlabReservationTickets";
-const WHATSAPP_DEFAULT_URL =
-  "https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n.";
-
+const RESERVATION_TICKETS_KEY = "fixlabReservations";
 const generateOrderNumber = () => {
-  const timestampChunk = Date.now().toString(36).slice(-4).toUpperCase();
-  const randomChunk = Math.floor(100000 + Math.random() * 900000).toString();
-  return `FL-${timestampChunk}-${randomChunk}`;
+  const year = new Date().getFullYear();
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `FL-${year}-${rand}`;
 };
 
 const normalizePhoneValue = (value) => value.replace(/\D/g, "");
@@ -165,16 +162,18 @@ window.requestAnimationFrame(() => {
   document.body.classList.add("page-ready");
 });
 
+const whatsappIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
+
 const ensureWhatsAppButtonVisible = () => {
   let whatsappButton = document.querySelector(".whatsapp-float");
   if (!whatsappButton) {
     whatsappButton = document.createElement("a");
     whatsappButton.className = "whatsapp-float";
-    whatsappButton.href = WHATSAPP_DEFAULT_URL;
+    whatsappButton.href = "https://wa.me/34600000000?text=Hola%20FixLab%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20reparaci%C3%B3n.";
     whatsappButton.target = "_blank";
     whatsappButton.rel = "noopener noreferrer";
     whatsappButton.setAttribute("aria-label", "Contactar por WhatsApp");
-    whatsappButton.textContent = "WhatsApp";
+    whatsappButton.innerHTML = whatsappIconSVG;
     document.body.appendChild(whatsappButton);
   }
 
@@ -300,106 +299,67 @@ if (heroTitle && heroTitle.textContent) {
 }
 
 const heroPhoneImage = document.getElementById("heroPhoneImage");
-if (heroPhoneImage && !reducedMotionQuery.matches) {
-  const heroPhoneSequence = [
-    {
-      src: "Imagenes%20tienda/Foto_s24.png",
-      alt: "Samsung Galaxy S24 Ultra reacondicionado en FixLab"
-    },
-    {
-      src: "samsung_galaxy_s26_ultra_5g_morado_Frontback.webp",
-      alt: "Samsung Galaxy S26 Ultra en color morado en FixLab"
-    },
-    {
-      src: "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-13t.jpg",
-      alt: "Xiaomi 13T reacondicionado en FixLab"
-    },
-    {
-      src: "Imagenes%20tienda/iPhone-14-pro.jpg",
-      alt: "iPhone 14 Pro en exposición de FixLab"
-    },
-    {
-      src: "Imagenes%20tienda/Nothing_Phone-3.png",
-      alt: "Nothing Phone 3 en exposición de FixLab"
-    }
-  ];
+if (heroPhoneImage) {
+  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (!reducedMotionQuery.matches) {
+    const heroPhoneSequence = [
+      {
+        src: "Fotos/samsung.webp",
+        alt: "Samsung Galaxy"
+      },
+      {
+        src: "Fotos/xiaomi.png",
+        alt: "Xiaomi"
+      },
+      {
+        src: "Fotos/Iphone.png",
+        alt: "iPhone"
+      },
+      {
+        src: "Fotos/zflip.webp",
+        alt: "Samsung Z Flip"
+      },
+      {
+        src: "Fotos/zfold.webp",
+        alt: "Samsung Z Fold"
+      }
+    ];
 
-  let heroPhoneIndex = 0;
-  const triggerHeroPhoneSwitch = () => {
-    heroPhoneImage.classList.add("is-switching");
+    let heroPhoneIndex = 0;
+    const triggerHeroPhoneSwitch = () => {
+      heroPhoneImage.classList.add("is-switching");
 
-    window.setTimeout(() => {
-      heroPhoneIndex = (heroPhoneIndex + 1) % heroPhoneSequence.length;
-      const nextPhone = heroPhoneSequence[heroPhoneIndex];
-      heroPhoneImage.src = nextPhone.src;
-      heroPhoneImage.alt = nextPhone.alt;
-    }, 160);
+      window.setTimeout(() => {
+        heroPhoneIndex = (heroPhoneIndex + 1) % heroPhoneSequence.length;
+        const nextPhone = heroPhoneSequence[heroPhoneIndex];
+        heroPhoneImage.src = nextPhone.src;
+        heroPhoneImage.alt = nextPhone.alt;
+      }, 160);
 
-    window.setTimeout(() => {
-      heroPhoneImage.classList.remove("is-switching");
-    }, 380);
+      window.setTimeout(() => {
+        heroPhoneImage.classList.remove("is-switching");
+      }, 380);
 
-    const nextDelay = 4200 + Math.floor(Math.random() * 2800);
-    window.setTimeout(triggerHeroPhoneSwitch, nextDelay);
-  };
+      const nextDelay = 4200 + Math.floor(Math.random() * 2800);
+      window.setTimeout(triggerHeroPhoneSwitch, nextDelay);
+    };
 
-  window.setTimeout(triggerHeroPhoneSwitch, 3400);
+    window.setTimeout(triggerHeroPhoneSwitch, 3400);
+  }
 }
 
 if (!reducedMotionQuery.matches) {
   const floatingItems = document.querySelectorAll(".card, .shop-card, .stat-card");
   floatingItems.forEach((item, index) => {
-    item.classList.add("motion-float");
     item.style.animationDelay = `${(index % 6) * 0.18}s`;
   });
-
-  const heroVisual = document.querySelector(".hero-visual");
-  if (heroVisual) {
-    document.addEventListener("mousemove", (event) => {
-      const { innerWidth, innerHeight } = window;
-      const offsetX = (event.clientX / innerWidth - 0.5) * 7;
-      const offsetY = (event.clientY / innerHeight - 0.5) * 7;
-      heroVisual.style.transform = `perspective(900px) rotateY(${offsetX}deg) rotateX(${-offsetY}deg)`;
-    });
-
-    document.addEventListener("mouseleave", () => {
-      heroVisual.style.transform = "perspective(900px) rotateY(0deg) rotateX(0deg)";
-    });
-  }
 }
 
-if (!reducedMotionQuery.matches && window.matchMedia("(pointer: fine)").matches && window.innerWidth > 980) {
-  const cursorDot = document.createElement("div");
-  cursorDot.className = "cyber-cursor";
-  document.documentElement.appendChild(cursorDot);
-  document.documentElement.classList.add("custom-cursor-active");
-  document.body.classList.add("custom-cursor-active");
-
-  let targetX = window.innerWidth / 2;
-  let targetY = window.innerHeight / 2;
-  let currentX = targetX;
-  let currentY = targetY;
-  const followStrength = 0.42;
-  const snapDistance = 0.35;
-
-  document.addEventListener("mousemove", (event) => {
-    targetX = event.clientX;
-    targetY = event.clientY;
-  });
-
-  const followCursor = () => {
-    currentX += (targetX - currentX) * followStrength;
-    currentY += (targetY - currentY) * followStrength;
-    if (Math.abs(targetX - currentX) < snapDistance) {
-      currentX = targetX;
-    }
-    if (Math.abs(targetY - currentY) < snapDistance) {
-      currentY = targetY;
-    }
-    cursorDot.style.transform = `translate(${currentX - 5}px, ${currentY - 5}px)`;
-    window.requestAnimationFrame(followCursor);
-  };
-  window.requestAnimationFrame(followCursor);
+{
+  const cursorQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (!cursorQuery.matches && window.matchMedia("(pointer: fine)").matches && window.innerWidth > 980) {
+    // Cursor personalizado deshabilitado en equipos lentos
+  }
 }
 
 if (window.emailjs) {
@@ -483,21 +443,64 @@ if (navLinks && !navLinks.querySelector(".nav-auth-item")) {
 }
 
 if (menuToggle && navLinks) {
-  menuToggle.addEventListener("click", () => {
-    navLinks.classList.toggle("show");
+  menuToggle.setAttribute("aria-expanded", "false");
+  menuToggle.setAttribute("aria-controls", "navLinks");
+  
+  menuToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = navLinks.classList.toggle("show");
+    menuToggle.setAttribute("aria-expanded", isOpen);
+    
+    if (isOpen) {
+      navLinks.querySelector("a")?.focus();
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
   });
 
   navLinks.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
       navLinks.classList.remove("show");
+      menuToggle.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
     });
   });
 
-  document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) {
-      return;
+  document.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!navLinks.contains(target) && !menuToggle.contains(target)) {
+      navLinks.classList.remove("show");
+      menuToggle.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
     }
+  });
+  
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && navLinks.classList.contains("show")) {
+      navLinks.classList.remove("show");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.focus();
+      document.body.style.overflow = "";
+    }
+  });
+  
+  let touchStartX = 0;
+  let touchEndX = 0;
+  
+  document.addEventListener("touchstart", (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  
+  document.addEventListener("touchend", (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchStartX - touchEndX > 100 && navLinks.classList.contains("show")) {
+      navLinks.classList.remove("show");
+      menuToggle.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    }
+  }, { passive: true });
+}
     if (!navLinks.contains(target) && !menuToggle.contains(target)) {
       navLinks.classList.remove("show");
     }
@@ -518,14 +521,17 @@ if (loginForm && loginMessage) {
     }
 
     const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const userExists = users.some((user) => user.email === email && user.password === password);
-    if (!userExists) {
+    const user = users.find((user) => user.email === email && user.password === password);
+    if (!user) {
       loginMessage.textContent = "Cuenta no encontrada o contraseña incorrecta. Regístrate primero.";
       loginMessage.style.color = "#b1416f";
       return;
     }
 
     localStorage.setItem(SESSION_KEY, email);
+    if (user.phone) {
+      localStorage.setItem("fixlabUserPhone", user.phone);
+    }
     loginMessage.textContent = "Inicio de sesión correcto. Redirigiendo...";
     loginMessage.style.color = "#3d63db";
     window.setTimeout(() => {
@@ -570,7 +576,7 @@ if (trackingForm && trackingMessage && trackingResult) {
     const formData = new FormData(trackingForm);
     const code = (formData.get("trackingCode") || "").toString().trim().toUpperCase();
     const phone = (formData.get("trackingPhone") || "").toString().trim();
-    const normalizedPhone = normalizePhoneValue(phone);
+    const normalizedPhone = phone ? normalizePhoneValue(phone) : "";
 
     if (code.length < 4 || normalizedPhone.length === 0) {
       trackingMessage.textContent = "Introduce un código válido y un teléfono correcto.";
@@ -580,10 +586,13 @@ if (trackingForm && trackingMessage && trackingResult) {
     }
 
     const ticket = getStoredReservationTickets().find((item) => {
-      const sameCode = (item.orderNumber || "").toUpperCase() === code;
-      const samePhone = normalizePhoneValue(item.phone || "") === normalizedPhone;
-      return sameCode && samePhone;
-    });
+      const storedCode = (item.code || item.orderNumber || "").toUpperCase();
+      const storedPhone = item.phone ? normalizePhoneValue(item.phone) : "";
+      if (normalizedPhone && storedPhone) {
+        return storedCode === code && storedPhone === normalizedPhone;
+      }
+      return storedCode === code;
+    })
 
     if (!ticket) {
       trackingMessage.textContent = "No encontramos una reserva con ese código y teléfono.";
@@ -607,6 +616,12 @@ if (trackingForm && trackingMessage && trackingResult) {
     `;
     trackingMessage.textContent = "Seguimiento actualizado.";
     trackingMessage.style.color = "#3d63db";
+
+    // Mostrar CTA de valoración tras consulta exitosa
+    var ctaValoracion = document.getElementById("ctaValoracion");
+    if (ctaValoracion) {
+      ctaValoracion.classList.add("visible");
+    }
   });
 }
 
@@ -1005,11 +1020,69 @@ if (revealItems.length > 0) {
         }
       });
     },
-    { threshold: 0.12 }
+    { threshold: 0.12, rootMargin: "0px 0px -50px 0px" }
   );
 
   revealItems.forEach((item) => observer.observe(item));
 }
+
+/* Auto-fill user data in reservation form */
+const autoFillUserData = () => {
+  const currentUser = localStorage.getItem(SESSION_KEY);
+  if (!currentUser) return;
+  
+  const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+  const user = users.find((u) => u.email === currentUser);
+  if (!user) return;
+  
+  const nameInput = document.getElementById("name");
+  const emailInput = document.getElementById("email");
+  const phoneInput = document.getElementById("phone");
+  
+  if (nameInput && user.name) {
+    nameInput.value = user.name;
+    nameInput.parentElement?.querySelector("label")?.setAttribute("data-filled", "true");
+  }
+  if (emailInput && user.email) {
+    emailInput.value = user.email;
+    emailInput.parentElement?.querySelector("label")?.setAttribute("data-filled", "true");
+  }
+  if (phoneInput && user.phone) {
+    phoneInput.value = user.phone;
+    phoneInput.parentElement?.querySelector("label")?.setAttribute("data-filled", "true");
+  }
+};
+
+/* Run on reserva.html */
+if (document.getElementById("reservationForm")) {
+  window.addEventListener("DOMContentLoaded", autoFillUserData);
+}
+
+/* Save user phone when registering */
+const enhanceRegistration = () => {
+  const registerForm = document.getElementById("registerForm");
+  if (!registerForm) return;
+  
+  registerForm.addEventListener("submit", (event) => {
+    const formData = new FormData(registerForm);
+    const name = (formData.get("name") || "").toString().trim();
+    const email = (formData.get("email") || "").toString().trim().toLowerCase();
+    const password = (formData.get("password") || "").toString().trim();
+    
+    if (!name || !email || !password) return;
+    
+    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+    const existingIndex = users.findIndex((u) => u.email === email);
+    
+    if (existingIndex >= 0) {
+      users[existingIndex] = { ...users[existingIndex], name, email, password };
+    } else {
+      users.push({ name, email, password });
+    }
+    
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  });
+};
 
 document.querySelectorAll("a[href]").forEach((link) => {
   link.addEventListener("click", (event) => {
