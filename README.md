@@ -121,5 +121,6 @@ Si una imagen no carga:
 
 ## Autor
 
-**Diego Mateo Paredes**  
+**Diego Mateo Paredes**
+**Victor Alonso Fuente**
 Proyecto: **FixLab S.L.**
