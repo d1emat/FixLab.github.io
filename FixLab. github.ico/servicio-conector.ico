@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conector de carga | FixLab</title>
+  <link rel="icon" type="image/png" href="Fotos/fixLab.ico">
+  <link rel="stylesheet" href="styles.ico?v=6">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="container nav">
+      <a class="brand" href="index.ico"><img src="Fotos/fixLab.ico" alt="FixLab" class="brand-logo"></a>
+      <button id="menuToggle" class="menu-toggle">Menú</button>
+      <ul id="navLinks" class="nav-links">
+        <li><a href="index.ico">Inicio</a></li>
+        <li><a href="servicios.ico" class="active">Servicios</a></li>
+        <li><a href="tiendas.ico">Tiendas</a></li>
+        <li><a href="tienda.ico">Tienda</a></li>
+        <li><a href="contacto.ico">Contacto</a></li>
+      </ul>
+      <a class="btn" href="login.ico">Iniciar sesión</a>
+    </nav>
+  </header>
+  <main class="page-main">
+    <section class="section">
+      <div class="container">
+        <p><a class="btn btn-secondary" href="servicios.ico">← Volver</a></p>
+        <div class="product-detail">
+          <div class="product-gallery">
+            <img src="Fotos servicios/reparacion_ carga.ico" alt="Conector de carga" class="product-main-image">
+          </div>
+          <article class="card">
+            <h1>Conector de carga</h1>
+            <p class="section-subtitle">Carga estable y segura.</p>
+            <p class="price-tag">Desde 39€</p>
+            <p>Limpieza técnica o sustitución del módulo.</p>
+            <p>Tiempo estimado: 40 a 75 minutos.</p>
+            <p>Comprobación de carga rápida.</p>
+            <a href="reserva.ico?service=Conector" class="booking-btn">📅 Reservar ahora</a>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <nav class="footer-links">
+        <a href="index.ico">Inicio</a><a href="servicios.ico">Servicios</a><a href="tiendas.ico">Tiendas</a><a href="tienda.ico">Tienda</a><a href="aviso-legal.ico">Legal</a>
+      </nav>
+      <p>© <span id="year"></span> FixLab</p>
+    </div>
+  </footer>
+  <script src="script.ico"></script>
+</body>
+</html>
