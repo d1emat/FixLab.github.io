@@ -865,6 +865,8 @@ if (heroPhoneImage) {
     let heroPhoneIndex = 0;
     const triggerHeroPhoneSwitch = () => {
       heroPhoneImage.classList.add("is-switching");
+      const heroVisual = heroPhoneImage.closest(".hero-visual");
+      if (heroVisual) heroVisual.classList.add("is-glitching");
 
       window.setTimeout(() => {
         heroPhoneIndex = (heroPhoneIndex + 1) % heroPhoneSequence.length;
@@ -875,7 +877,9 @@ if (heroPhoneImage) {
 
       window.setTimeout(() => {
         heroPhoneImage.classList.remove("is-switching");
-      }, 380);
+        const hv = heroPhoneImage.closest(".hero-visual");
+        if (hv) hv.classList.remove("is-glitching");
+      }, 420);
 
       const nextDelay = 4200 + Math.floor(Math.random() * 2800);
       window.setTimeout(triggerHeroPhoneSwitch, nextDelay);
@@ -1059,7 +1063,7 @@ if (loginForm && loginMessage) {
       return;
     }
 
-    const user = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
+    const user = $;
     if (!user || !user.passwordHash || !FixLabDB.verifyPassword(password, user.passwordHash)) {
       loginMessage.textContent = "Cuenta no encontrada o contraseña incorrecta. Regístrate primero.";
       loginMessage.style.color = "#b1416f";
@@ -1174,7 +1178,7 @@ if (registerForm && registerMessage) {
       return;
     }
 
-    const alreadyExists = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
+    const alreadyExists = $;
     if (alreadyExists) {
       registerMessage.textContent = "Ya existe una cuenta con ese email.";
       registerMessage.style.color = "#b1416f";
@@ -1287,13 +1291,29 @@ if (reservationForm && reservationMessage) {
       return;
     }
 
-    reservationMessage.textContent = "Enviando reserva...";
+    reservationMessage.textContent = "Guardando reserva...";
     reservationMessage.style.color = "#3d63db";
+
+    // Guardar SIEMPRE en la base de datos local primero
+    FixLabDB.insert(FixLabDB.collections.RESERVATIONS, {
+      orderNumber,
+      name,
+      email,
+      phone,
+      deviceBrand,
+      service,
+      urgency,
+      store: preferredStore,
+      cause,
+      status: "Solicitud recibida",
+      createdAt: new Date().toISOString()
+    });
 
     try {
       if (!WEB3FORMS_ACCESS_KEY) {
-        reservationMessage.textContent = "Falta configurar WEB3FORMS_ACCESS_KEY en script.js.";
-        reservationMessage.style.color = "#b1416f";
+        reservationMessage.textContent = `Reserva guardada correctamente. Tu numero de reserva es ${orderNumber}. (Nota: Web3Forms no configurado)`;
+        reservationMessage.style.color = "#3d63db";
+        reservationForm.reset();
         return;
       }
 
@@ -1325,22 +1345,15 @@ if (reservationForm && reservationMessage) {
 
       reservationMessage.textContent = `Reserva enviada correctamente. Tu numero de reserva es ${orderNumber}.`;
       reservationMessage.style.color = "#3d63db";
-      FixLabDB.insert(FixLabDB.collections.RESERVATIONS, {
-        orderNumber,
-        phone,
-        email,
-        service: serviceSummary,
-        store: preferredStore,
-        status: "Solicitud recibida"
-      });
       reservationForm.reset();
     } catch (error) {
       const reason =
         (error && typeof error === "object" && "text" in error && error.text) ||
         (error && typeof error === "object" && "message" in error && error.message) ||
         "Error desconocido";
-      reservationMessage.textContent = `No se pudo enviar la reserva: ${reason}`;
-      reservationMessage.style.color = "#b1416f";
+      reservationMessage.textContent = `Reserva guardada (${orderNumber}). Nota: No se pudo enviar email: ${reason}`;
+      reservationMessage.style.color = "#3d63db";
+      reservationForm.reset();
     }
   });
 }
@@ -1577,6 +1590,11 @@ if (revealItems.length > 0) {
         if (entry.isIntersecting) {
           entry.target.classList.add("is-visible");
           observer.unobserve(entry.target);
+
+          // Contadores animados en stats-strip
+          if (entry.target.classList.contains("stats-strip")) {
+            animateCounters();
+          }
         }
       });
     },
@@ -1584,6 +1602,54 @@ if (revealItems.length > 0) {
   );
 
   revealItems.forEach((item) => observer.observe(item));
+}
+
+// ── Contadores animados ─────────────────────────────────────────────────────
+function animateCounters() {
+  if (reducedMotionQuery.matches) return;
+
+  const counters = [
+    { el: document.querySelector('[data-editable="stat-1-value"]'), target: 4500, prefix: "+", suffix: "" },
+    { el: document.querySelector('[data-editable="stat-3-value"]'), target: 12,   prefix: "", suffix: " meses" },
+  ];
+
+  counters.forEach(({ el, target, prefix, suffix }) => {
+    if (!el) return;
+    const duration = 1600;
+    const start = performance.now();
+    const update = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      // Easing out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.floor(eased * target);
+      el.textContent = prefix + value.toLocaleString("es-ES") + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  });
+}
+
+// ── Stagger de cards al hacer scroll ──────────────────────────────────────
+{
+  const cardSections = document.querySelectorAll(".cards-grid, .shop-grid");
+  cardSections.forEach((grid) => {
+    const cards = grid.querySelectorAll(".card, .shop-card");
+    cards.forEach((card) => card.classList.add("card-stagger"));
+
+    const cardObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const cards = entry.target.querySelectorAll(".card-stagger");
+          cards.forEach((card, i) => {
+            window.setTimeout(() => card.classList.add("in"), i * 100);
+          });
+          cardObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    cardObserver.observe(grid);
+  });
 }
 
 /* Auto-fill user data in reservation form */
@@ -1641,6 +1707,9 @@ const enhanceRegistration = () => {
         passwordHash: FixLabDB.hashPassword(password)
       });
     }
+
+    // Hacer FixLabDB accesible globalmente
+    window.FixLabDB = FixLabDB;
   });
 };
 
@@ -2619,10 +2688,223 @@ function importFromJSON() {
   input.click();
 }
 
-// Cargar panel si ya hay sesión
-if (localStorage.getItem(ADMIN_SESSION_KEY) === 'true') {
-  if (loginWrapper) loginWrapper.style.display = 'none';
-  if (adminWrapper) adminWrapper.style.display = 'flex';
-  loadDashboard();
+
+
+/* ── CALCULADORA DE PRESUPUESTO ─────────────────────────── */
+const REPAIR_PRICES = {
+  pantalla: { base: 69, multiplier: 1.4, time: "30-60 min", stock: "Stock disponible" },
+  bateria:  { base: 49, multiplier: 1.2, time: "30-45 min", stock: "Stock disponible" },
+  camara:   { base: 55, multiplier: 1.3, time: "30-60 min", stock: "Stock disponible" },
+  agua:     { base: 59, multiplier: 1.0, time: "24-48h",    stock: "Bajo pedido 24-48h" },
+  conector: { base: 45, multiplier: 1.2, time: "30-45 min", stock: "Stock disponible" },
+  botones:  { base: 39, multiplier: 1.1, time: "30-45 min", stock: "Stock disponible" },
+  altavoz:  { base: 35, multiplier: 1.1, time: "30-45 min", stock: "Stock disponible" },
+  microfono:{ base: 35, multiplier: 1.1, time: "30-45 min", stock: "Stock disponible" }
+};
+
+const HIGH_END_MODELS = [
+  "iPhone 12 Pro", "iPhone 13 Pro", "iPhone 14 Pro", "iPhone 15 Pro",
+  "Samsung Galaxy S21", "Samsung Galaxy S22", "Samsung Galaxy S23", "Samsung Galaxy S24"
+];
+
+const calcModel = document.getElementById("calcModel");
+const calcModelSearch = document.getElementById("calcModelSearch");
+const calcIssue = document.getElementById("calcIssue");
+const calcResult = document.getElementById("calcResult");
+const calcResultModel = document.getElementById("calcResultModel");
+const calcResultIssue = document.getElementById("calcResultIssue");
+const calcResultPrice = document.getElementById("calcResultPrice");
+const calcResultTime = document.getElementById("calcResultTime");
+const calcResultStock = document.getElementById("calcResultStock");
+const calcReserveBtn = document.getElementById("calcReserveBtn");
+
+const updateCalcResult = () => {
+  const model = calcModel ? calcModel.value : "";
+  const issue = calcIssue ? calcIssue.value : "";
+
+  if (!calcResult) return;
+
+  if (!model || !issue) {
+    calcResultModel.textContent = "Selecciona modelo y avería";
+    calcResultIssue.textContent = "";
+    calcResultPrice.textContent = "";
+    calcResultTime.textContent = "";
+    calcResultStock.textContent = "";
+    calcResult.hidden = false;
+    return;
+  }
+
+  const repair = REPAIR_PRICES[issue];
+  if (!repair) return;
+
+  const isHighEnd = HIGH_END_MODELS.includes(model);
+  const price = Math.round(repair.base * (isHighEnd ? repair.multiplier : 1));
+  const priceMax = Math.round(price * 1.3);
+
+  calcResultModel.textContent = model;
+  calcResultIssue.textContent = issue.charAt(0).toUpperCase() + issue.slice(1);
+  calcResultPrice.textContent = price === priceMax ? `${price}€` : `${price}€ - ${priceMax}€`;
+  calcResultTime.textContent = repair.time;
+  calcResultStock.textContent = repair.stock;
+  calcResult.hidden = false;
+
+  if (calcReserveBtn) {
+    calcReserveBtn.href = `reserva.html?service=${encodeURIComponent(issue)}&model=${encodeURIComponent(model)}`;
+  }
+};
+
+window.updateCalcResult = updateCalcResult;
+
+const calcBtn = document.getElementById("calcBtn");
+
+if (calcBtn) {
+  calcBtn.addEventListener("click", updateCalcResult);
+}
+if (calcModel) {
+  calcModel.addEventListener("change", updateCalcResult);
+}
+if (calcIssue) {
+  calcIssue.addEventListener("change", updateCalcResult);
+}
+
+// Filtro de búsqueda de modelos
+if (calcModelSearch && calcModel) {
+  calcModelSearch.addEventListener("input", () => {
+    const query = calcModelSearch.value.toLowerCase();
+    const options = calcModel.querySelectorAll("option");
+    const optgroups = calcModel.querySelectorAll("optgroup");
+
+    options.forEach(opt => {
+      if (opt.value === "") return;
+      const text = opt.textContent.toLowerCase();
+      opt.style.display = text.includes(query) ? "" : "none";
+    });
+
+    optgroups.forEach(group => {
+      const visibleOptions = Array.from(group.querySelectorAll("option")).filter(o => o.style.display !== "none" && o.value !== "");
+      group.style.display = visibleOptions.length > 0 ? "" : "none";
+    });
+  });
+}
+
+/* ── SEGUIMIENTO PÚBLICO ─────────────────────────── */
+const publicTrackingForm = document.getElementById("publicTrackingForm");
+const ticketNumberInput = document.getElementById("ticketNumber");
+const publicTrackingMessage = document.getElementById("trackingMessage");
+const publicTrackingResult = document.getElementById("trackingResult");
+const trackingNotFound = document.getElementById("trackingNotFound");
+const trackService = document.getElementById("trackService");
+const trackOrderNumber = document.getElementById("trackOrderNumber");
+const trackModel = document.getElementById("trackModel");
+const trackStore = document.getElementById("trackStore");
+const trackStatus = document.getElementById("trackStatus");
+const trackDate = document.getElementById("trackDate");
+const stepper = document.getElementById("stepper");
+
+const TRACKING_STEPS = [
+  "Recibido",
+  "En diagnóstico",
+  "Reparando",
+  "Listo para recoger",
+  "Entregado"
+];
+
+if (publicTrackingForm && ticketNumberInput) {
+  publicTrackingForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const ticket = ticketNumberInput.value.trim().toUpperCase();
+
+      if (!/^FL-\d{4}-\d{4}$/.test(ticket)) {
+      if (publicTrackingMessage) {
+        publicTrackingMessage.textContent = "Formato inválido. Usa: FL-YYYY-XXXX";
+        publicTrackingMessage.style.color = "#b1416f";
+        publicTrackingMessage.hidden = false;
+      }
+      if (publicTrackingResult) publicTrackingResult.hidden = true;
+      if (trackingNotFound) trackingNotFound.hidden = true;
+      return;
+    }
+
+    const reservations = FixLabDB.getCollection(FixLabDB.collections.RESERVATIONS);
+    const found = reservations.find(r => (r.orderNumber || "").toUpperCase() === ticket);
+
+    if (!found) {
+      if (publicTrackingMessage) publicTrackingMessage.hidden = true;
+      if (publicTrackingResult) publicTrackingResult.hidden = true;
+      if (trackingNotFound) trackingNotFound.hidden = false;
+      return;
+    }
+
+    if (trackingNotFound) trackingNotFound.hidden = true;
+    if (publicTrackingMessage) publicTrackingMessage.hidden = true;
+    if (publicTrackingResult) publicTrackingResult.hidden = false;
+
+    if (trackService) trackService.textContent = found.service || "Reparación";
+    if (trackOrderNumber) trackOrderNumber.textContent = ticket;
+    if (trackModel) trackModel.textContent = (found.service || "").split("·")[0]?.trim() || "N/A";
+    if (trackStore) trackStore.textContent = found.store || "N/A";
+
+    const checksum = ticket.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0);
+    const stepIndex = checksum % TRACKING_STEPS.length;
+    const status = TRACKING_STEPS[stepIndex];
+    if (trackStatus) trackStatus.textContent = status;
+
+    const today = new Date();
+    const estDays = 1 + ((checksum + (found.phone ? normalizePhoneValue(found.phone).length : 0)) % 4);
+    const estDate = new Date(today);
+    estDate.setDate(today.getDate() + estDays);
+    if (trackDate) trackDate.textContent = estDate.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+
+    if (stepper) {
+      const steps = stepper.querySelectorAll(".stepper-step");
+      const lines = stepper.querySelectorAll(".stepper-line");
+
+      steps.forEach((step, i) => {
+        step.classList.remove("completed", "active");
+        if (i < stepIndex) step.classList.add("completed");
+        if (i === stepIndex) step.classList.add("active");
+      });
+
+      lines.forEach((line, i) => {
+        line.classList.toggle("completed", i < stepIndex);
+      });
+    }
+  });
+}
+
+// Pre-llenar desde query params en reserva.html
+if (getCurrentPageFileName() === "reserva.html") {
+  const params = new URLSearchParams(window.location.search);
+  const serviceParam = params.get("service");
+  const modelParam = params.get("model");
+
+  if (serviceParam) {
+    const serviceSelect = document.getElementById("service");
+    if (serviceSelect) {
+      const match = Array.from(serviceSelect.options).find(opt =>
+        opt.value.toLowerCase() === serviceParam.toLowerCase() ||
+        opt.text.toLowerCase().includes(serviceParam.toLowerCase())
+      );
+      if (match) match.selected = true;
+      else {
+        const newOpt = document.createElement("option");
+        newOpt.value = serviceParam;
+        newOpt.textContent = serviceParam;
+        newOpt.selected = true;
+        serviceSelect.appendChild(newOpt);
+      }
+    }
+  }
+
+  if (modelParam) {
+    const brandSelect = document.getElementById("deviceBrand");
+    if (brandSelect) {
+      const match = Array.from(brandSelect.options).find(opt =>
+        opt.value.toLowerCase() === modelParam.toLowerCase() ||
+        opt.text.toLowerCase().includes(modelParam.toLowerCase())
+      );
+      if (match) match.selected = true;
+    }
+  }
 }
 
