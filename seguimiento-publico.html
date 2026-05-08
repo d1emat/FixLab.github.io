@@ -27,7 +27,6 @@
         <li><a href="contacto.html">Contacto</a></li>
       </ul>
        <div style="display:flex; gap:0.5rem; align-items:center;">
-         <a class="btn-dashboard" href="panel_control.html">⚡ Admin</a>
          <a class="btn btn-login" href="login.html">Login</a>
        </div>
     </nav>
@@ -36,10 +35,21 @@
   <main class="page-main">
     <section class="section reveal">
       <div class="container tracking-container">
-        <h1 class="section-title" data-editable="track-title">Seguimiento de reparación</h1>
-        <p class="section-subtitle" data-editable="track-subtitle">Introduce tu número de ticket para consultar el estado de tu reparación.</p>
+        <h1 class="section-title">Seguimiento</h1>
+        <p class="section-subtitle">Introduce tu número de ticket para ver el estado real de tu reparación.</p>
 
-        <form id="publicTrackingForm" class="tracking-form">
+        <!-- DASHBOARD DE USUARIO (Solo si está logueado) -->
+        <div id="userDashboard" class="user-dashboard" hidden>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+            <h2 style="font-family:Orbitron; font-size:1.2rem; margin:0;">Hola, <span id="userName">Cliente</span></h2>
+            <p style="font-size:0.8rem; color:var(--muted); margin:0;">Tus pedidos y reparaciones recientes</p>
+          </div>
+          <div id="userOrdersList" class="user-orders-list">
+            <!-- Cargado por JS -->
+          </div>
+        </div>
+
+        <form id="publicTrackingForm" class="glass-card" style="padding: 2rem;">
           <div class="field field-tracking">
             <label for="ticketNumber">Número de ticket</label>
             <input type="text" id="ticketNumber" class="tracking-input" placeholder="FL-2024-1234" pattern="FL-\d{4}-\d{4}" required>
@@ -106,6 +116,13 @@
           <p>No encontramos un ticket con ese número.</p>
           <p>¿Necesitas ayuda? <a href="https://wa.me/34600000000" class="btn btn-light" target="_blank" rel="noopener noreferrer">Contactar por WhatsApp</a></p>
         </div>
+
+        <div id="trackingAction" style="margin-top: 2.5rem; text-align: center;" hidden>
+          <p class="muted" style="margin-bottom: 1rem;">¿Qué te ha parecido nuestro servicio?</p>
+          <a href="valoracion.html" class="btn btn-primary" style="background: var(--neon-yellow); color: #000; border: none; font-weight: 700;">
+            Dejar una valoración
+          </a>
+        </div>
       </div>
     </section>
   </main>
@@ -150,29 +167,64 @@
       const trackDate = document.getElementById("trackDate");
       const stepper = document.getElementById("stepper");
 
-      const STEPS = ["Recibido","En diagnóstico","Reparando","Listo para recoger","Entregado"];
+      const STEPS_REPARACION = ["Recibido", "En diagnóstico", "Reparando", "Listo para recoger", "Entregado"];
+      const STEPS_PEDIDO = ["Pago recibido", "Preparando", "Enviado", "En reparto", "Entregado"];
+      
+      const STATUS_MAP = {
+        "solicitud recibida": 0,
+        "recibida": 0,
+        "en diagnóstico": 1,
+        "diagno": 1,
+        "reparando": 2,
+        "reparación": 2,
+        "listo para recoger": 3,
+        "listo": 3,
+        "entregado": 4,
+        "pendiente de envío": 1,
+        "preparando": 1,
+        "enviado": 2,
+        "en reparto": 3
+      };
+
+      function getStepIndex(status) {
+        if (!status) return 0;
+        const s = status.toLowerCase();
+        for (const key in STATUS_MAP) {
+          if (s.includes(key)) return STATUS_MAP[key];
+        }
+        return 0;
+      }
 
       if (form && input) {
         form.addEventListener("submit", function(e) {
           e.preventDefault();
           const ticket = input.value.trim().toUpperCase();
           
-          if (!/^FL-\d{4}-\d{4}$/.test(ticket)) {
-            if (msg) { msg.textContent = "Formato inválido. Usa: FL-YYYY-XXXX"; msg.style.color = "#b1416f"; msg.hidden = false; }
+          if (!/^FL-\d{4}-\d{4}$/.test(ticket) && !/^ORD-\d{4}$/.test(ticket)) {
+            if (msg) { 
+              msg.textContent = "Formato inválido. Usa: FL-2026-XXXX o ORD-XXXX"; 
+              msg.style.color = "var(--neon-pink)"; 
+              msg.hidden = false; 
+            }
             if (result) result.hidden = true;
             if (notFound) notFound.hidden = true;
             return;
           }
 
-          let reservations = [];
+          let allReservations = [];
           try {
-            const stored = localStorage.getItem('fixlab_db_reservations');
-            reservations = stored ? JSON.parse(stored) : [];
+            const db1 = JSON.parse(localStorage.getItem('fixlab_db_reservations') || "[]");
+            const db2 = JSON.parse(localStorage.getItem('fixlabReservations') || "[]");
+            allReservations = [...db1, ...db2];
           } catch(e) {
-            reservations = [];
+            console.error("Error al leer base de datos", e);
           }
            
-          const found = reservations.find(r => (r.orderNumber || "").toUpperCase() === ticket);
+          const found = allReservations.find(function(r) {
+            const code = ((r.orderNumber || r.code || "") + "").trim().toUpperCase();
+            const cleanCode = code.replace('#', '');
+            return cleanCode === ticket;
+          });
           
           if (!found) {
             if (msg) msg.hidden = true;
@@ -184,21 +236,33 @@
           if (notFound) notFound.hidden = true;
           if (msg) msg.hidden = true;
           if (result) result.hidden = false;
+          const trackAction = document.getElementById("trackingAction");
+          if (trackAction) trackAction.hidden = false;
 
-          if (trackService) trackService.textContent = found.service || "Reparación";
+          const isPedido = (found.type === 'PRODUCT_ORDER' || ticket.startsWith('ORD'));
+          const currentSteps = isPedido ? STEPS_PEDIDO : STEPS_REPARACION;
+
+          const serviceName = found.productName || (found.service || "Reparación").split("·")[0].trim();
+          if (trackService) trackService.textContent = serviceName;
           if (trackOrder) trackOrder.textContent = ticket;
-          if (trackModel) trackModel.textContent = (found.service || "").split("·")[0]?.trim() || "N/A";
-          if (trackStore) trackStore.textContent = found.store || "N/A";
+          
+          const modelText = found.address || found.deviceBrand || found.brand || (found.service || "").split("·")[1]?.trim() || "Genérico";
+          if (trackModel) trackModel.textContent = modelText;
+          if (trackStore) trackStore.textContent = found.store || "Tienda Online";
+          
+          const currentStatus = found.status || "Procesando";
+          if (trackStatus) trackStatus.textContent = currentStatus;
 
-          const checksum = ticket.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0);
-          const stepIndex = checksum % STEPS.length;
-          if (trackStatus) trackStatus.textContent = STEPS[stepIndex];
+          const createDate = found.createdAt ? new Date(found.createdAt) : new Date();
+          createDate.setDate(createDate.getDate() + 3);
+          if (trackDate) trackDate.textContent = createDate.toLocaleDateString();
 
-          const today = new Date();
-          const estDays = 1 + ((checksum + (found.phone ? found.phone.length : 0)) % 4);
-          const estDate = new Date(today);
-          estDate.setDate(today.getDate() + estDays);
-          if (trackDate) trackDate.textContent = estDate.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+          const stepIndex = getStepIndex(currentStatus);
+
+          const labels = stepper.querySelectorAll(".stepper-label");
+          labels.forEach((label, i) => {
+            if (currentSteps[i]) label.textContent = currentSteps[i];
+          });
 
           if (stepper) {
             const steps = stepper.querySelectorAll(".stepper-step");
@@ -207,12 +271,92 @@
               step.classList.remove("completed", "active");
               if (i < stepIndex) step.classList.add("completed");
               if (i === stepIndex) step.classList.add("active");
+              // Si el estado es "Entregado", marcar todos como completados
+              if (stepIndex === 4) step.classList.add("completed");
             });
             lines.forEach((line, i) => {
-              line.classList.toggle("completed", i < stepIndex);
+              line.classList.toggle("completed", i < stepIndex || (stepIndex === 4));
             });
           }
         });
+
+        // AUTO-CHECK URL PARAMETER
+        const urlParams = new URLSearchParams(window.location.search);
+        const ticketParam = urlParams.get('ticket');
+        if (ticketParam) {
+          input.value = ticketParam;
+          form.dispatchEvent(new Event('submit'));
+        }
+
+        // --- DASHBOARD DE USUARIO LOGUEADO ---
+        const checkUserSession = () => {
+          const SESSION_KEY = 'fixlab_db_session'; 
+          const USERS_KEY = 'fixlab_db_users';
+          const sessionData = localStorage.getItem(SESSION_KEY);
+          
+          if (!sessionData) return;
+
+          let currentUserEmail = "";
+          try {
+            const parsed = JSON.parse(sessionData);
+            // El formato de FixLabDB.saveCollection parece guardar un array
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              currentUserEmail = parsed[0].email;
+            } else if (typeof parsed === 'string') {
+              currentUserEmail = parsed;
+            }
+          } catch(e) {
+            currentUserEmail = sessionData; // Fallback si no es JSON
+          }
+          
+          if (!currentUserEmail) return;
+
+          const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+          const user = users.find(u => u.email === currentUserEmail);
+          
+          if (user) {
+            const dashboard = document.getElementById('userDashboard');
+            if (dashboard) {
+              dashboard.hidden = false;
+              // Asegurarse de que no tenga display:none en CSS por error
+              dashboard.style.display = 'block'; 
+            }
+            document.getElementById('userName').textContent = user.name || user.email.split('@')[0];
+            
+            // Buscar sus pedidos
+            let allReservations = [];
+            try {
+              const db1 = JSON.parse(localStorage.getItem('fixlab_db_reservations') || "[]");
+              const db2 = JSON.parse(localStorage.getItem('fixlabReservations') || "[]");
+              allReservations = [...db1, ...db2];
+            } catch(e) {}
+
+            const userOrders = allReservations.filter(r => 
+              (r.email && r.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
+              (r.customerEmail && r.customerEmail.toLowerCase() === currentUserEmail.toLowerCase())
+            );
+
+            const listEl = document.getElementById('userOrdersList');
+            if (userOrders.length > 0) {
+              listEl.innerHTML = userOrders.map(o => `
+                <div class="order-card-mini" onclick="document.getElementById('ticketNumber').value='${o.orderNumber || o.code}'; document.getElementById('publicTrackingForm').dispatchEvent(new Event('submit')); window.scrollTo({top: 0, behavior: 'smooth'});">
+                  <div class="order-info-mini">
+                    <span class="order-code-mini">${o.orderNumber || o.code}</span>
+                    <span style="color:var(--text); font-size:0.9rem;">${o.productName || o.service || 'Reparación'}</span>
+                  </div>
+                  <div style="text-align:right;">
+                    <div class="order-status-mini" style="color:var(--neon-cyan)">${o.status}</div>
+                    <div class="order-date-mini">${o.date || (o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '')}</div>
+                  </div>
+                </div>
+              `).join('');
+            } else {
+              listEl.innerHTML = '<p class="muted" style="text-align:center; padding:1rem;">Aún no tienes pedidos o reparaciones registradas.</p>';
+            }
+          }
+        };
+
+        checkUserSession();
       }
     })();
   </script>

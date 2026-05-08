@@ -469,6 +469,14 @@
     </div>
     <button class="btn-login-submit" onclick="handleLogin()">ACCEDER</button>
     <div id="loginError"></div>
+    <button
+      id="devResetBtn"
+      type="button"
+      onclick="resetFixLabData()"
+      style="display:none; margin-top:0.75rem; width:100%; padding:0.55rem; background:transparent; border:1px dashed rgba(255,45,120,0.45); border-radius:6px; color:#FF2D78; font-size:0.75rem; cursor:pointer;"
+    >
+      Reset datos (dev)
+    </button>
   </div>
 </div>
 
@@ -487,8 +495,14 @@
       <button class="nav-item" onclick="showView('reservas')" data-view="reservas">
         <span class="icon">🔧</span><span>Reservas</span>
       </button>
+      <button class="nav-item" onclick="showView('pedidos')" data-view="pedidos">
+        <span class="icon">🛒</span><span>Pedidos</span>
+      </button>
       <button class="nav-item" onclick="showView('clientes')" data-view="clientes">
         <span class="icon">👥</span><span>Clientes</span>
+      </button>
+      <button class="nav-item" onclick="showView('resenias')" data-view="resenias">
+        <span class="icon">⭐</span><span>Reseñas</span>
       </button>
       <button class="nav-item" onclick="showView('tiendas')" data-view="tiendas">
         <span class="icon">🏪</span><span>Tiendas</span>
@@ -596,6 +610,19 @@
       </div>
     </div>
 
+    <!-- ════ VIEW: PEDIDOS ════ -->
+    <div id="view-pedidos" class="view">
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Gestión de Pedidos</div>
+          <input class="search-input" type="text" id="searchPedidos"
+            placeholder="🔍  Buscar pedido, cliente..." oninput="renderTablaPedidos()">
+        </div>
+        <div id="tablaPedidosContent"></div>
+        <div class="pagination" id="paginationPedidos"></div>
+      </div>
+    </div>
+
     <!-- ════ VIEW: CLIENTES ════ -->
     <div id="view-clientes" class="view">
       <div class="table-card">
@@ -605,6 +632,21 @@
             placeholder="🔍  Buscar..." oninput="renderClientes()">
         </div>
         <div id="clientesContent"></div>
+      </div>
+    </div>
+
+    <!-- ════ VIEW: RESEÑAS ════ -->
+    <div id="view-resenias" class="view">
+      <div class="charts-row">
+        <div class="kpi-card yellow"><span class="kpi-icon">⭐</span><div class="kpi-label">Total Reseñas</div><div class="kpi-value" id="kpiResenias">0</div><div class="kpi-sub" id="kpiReseniasAvg">—</div></div>
+        <div class="kpi-card cyan"><span class="kpi-icon">📊</span><div class="kpi-label">NPS Medio</div><div class="kpi-value" id="kpiNPS">—</div><div class="kpi-sub">de 10</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Todas las reseñas</div>
+          <input class="search-input" type="text" id="searchResenias" placeholder="🔍  Buscar nombre, tienda..." oninput="renderResenias()">
+        </div>
+        <div id="reseniasContent"></div>
       </div>
     </div>
 
@@ -620,14 +662,16 @@
 // ─────────────────────────────────────────────────
 //  CONFIG
 // ─────────────────────────────────────────────────
-const ADMIN_KEY   = 'fixlab_db_session';
-const ADMIN_USER  = 'admin';
-const ADMIN_PASS  = 'Skibidi67';   // ← misma contraseña que en script.js
+const ADMIN_EMAIL_HASH = "Zml4bGFiY3lsQGdtYWlsLmNvbQ=="; // b64
+const ADMIN_PASS_HASH  = "VmxgeWtoYzY4Xzk="; // hash custom de FixLabDB
+
+const ADMIN_KEY   = 'fixlab_admin_session';
 
 const DB_KEYS = {
   USERS:        'fixlab_db_users',
   RESERVATIONS: 'fixlab_db_reservations',
   SESSION:      'fixlab_db_session',
+  REVIEWS:      'fixlabReviews',
 };
 
 // Precios estimados por tipo de servicio (para calcular ingresos)
@@ -659,23 +703,115 @@ const POR_PAGINA = 10;
 // ─────────────────────────────────────────────────
 //  DB HELPERS
 // ─────────────────────────────────────────────────
-function getCollection(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '[]'); }
-  catch { return []; }
+function _decrypt(str) {
+  try {
+    const decoded = atob(str);
+    let res = "";
+    for (let i = 0; i < decoded.length; i++) {
+      res += String.fromCharCode(decoded.charCodeAt(i) ^ 0x0F);
+    }
+    return JSON.parse(res);
+  } catch (e) { return null; }
 }
+
+function getCollection(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+
+    let data = [];
+    const decrypted = _decrypt(raw);
+    if (decrypted !== null) data = decrypted;
+    else data = JSON.parse(raw);
+
+    if (key === DB_KEYS.RESERVATIONS) {
+      const altRaw = localStorage.getItem('fixlabReservations');
+      let altData = [];
+      if (altRaw) {
+        const decAlt = _decrypt(altRaw);
+        if (decAlt !== null) altData = decAlt;
+        else altData = JSON.parse(altRaw);
+      }
+      
+      if (altData.length > 0) {
+        const existingIds = new Set(data.map(r => r.orderNumber || r.code || r._id));
+        altData.forEach(alt => {
+          const id = alt.orderNumber || alt.code || alt._id;
+          if (id && !existingIds.has(id)) {
+            if (!alt.orderNumber && alt.code) alt.orderNumber = alt.code;
+            if (!alt.createdAt && alt.date) alt.createdAt = new Date(alt.date.split('/').reverse().join('-')).toISOString();
+            data.push(alt);
+          }
+        });
+      }
+    }
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+function _encrypt(data) {
+  try {
+    const str = JSON.stringify(data);
+    let res = "";
+    for (let i = 0; i < str.length; i++) {
+      res += String.fromCharCode(str.charCodeAt(i) ^ 0x0F);
+    }
+    return btoa(res);
+  } catch (e) { return ""; }
+}
+
 function saveCollection(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
+  localStorage.setItem(key, _encrypt(data));
+}
+
+function normalizeReservation(r) {
+  if (!r.orderNumber && r.code) {
+    r.orderNumber = r.code;
+  }
+  if (!r.createdAt && r.date) {
+    r.createdAt = r.date;
+  }
+  return r;
+}
+
+function getReservationDate(r) {
+  const rawDate = r.createdAt || r.date || null;
+  const date = rawDate ? new Date(rawDate) : null;
+  return date instanceof Date && !isNaN(date) ? date : null;
+}
+
+function formatReservationDate(r) {
+  const date = getReservationDate(r);
+  return date ? date.toLocaleDateString('es-ES', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  }) : '—';
+}
+
+function getReservationTicket(r) {
+  return r.orderNumber || r.code || '—';
+}
+
+function loadReservations() {
+  const raw = getCollection(DB_KEYS.RESERVATIONS);
+  const normalized = raw.map(normalizeReservation);
+  if (JSON.stringify(normalized) !== JSON.stringify(raw)) {
+    saveCollection(DB_KEYS.RESERVATIONS, normalized);
+  }
+  return normalized;
 }
 
 // ─────────────────────────────────────────────────
 //  LOGIN
 // ─────────────────────────────────────────────────
 function handleLogin() {
-  const u = document.getElementById('adminUser').value.trim();
+  const u = document.getElementById('adminUser').value.trim().toLowerCase();
   const p = document.getElementById('adminPass').value;
   const err = document.getElementById('loginError');
+  const validUser = u === ADMIN_USER || u === ADMIN_EMAIL;
 
-  if (u === ADMIN_USER && p === ADMIN_PASS) {
+  if (validUser && p === ADMIN_PASS) {
     localStorage.setItem(ADMIN_KEY, 'true');
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appShell').style.display = 'block';
@@ -683,6 +819,19 @@ function handleLogin() {
   } else {
     err.textContent = 'Usuario o contraseña incorrectos';
   }
+}
+
+function resetFixLabData() {
+  const ok = window.confirm('Esto borrará los datos locales de FixLab en este navegador. ¿Continuar?');
+  if (!ok) return;
+
+  const keys = Object.keys(localStorage);
+  const fixlabKeys = keys.filter((key) => key.toLowerCase().includes('fixlab'));
+  fixlabKeys.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem(ADMIN_KEY);
+
+  alert('Datos locales de FixLab borrados. La página se recargará.');
+  location.reload();
 }
 
 function logout() {
@@ -696,6 +845,21 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Botón oculto para desarrollo:
+// - Visible con ?dev=1
+// - O con atajo: Ctrl + Alt + R
+const devResetBtn = document.getElementById('devResetBtn');
+const devMode = new URLSearchParams(window.location.search).get('dev') === '1';
+if (devResetBtn && devMode) {
+  devResetBtn.style.display = 'block';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'r' && devResetBtn) {
+    devResetBtn.style.display = 'block';
+  }
+});
+
 // Auto-login si sesión activa
 if (localStorage.getItem(ADMIN_KEY) === 'true') {
   document.getElementById('loginScreen').style.display = 'none';
@@ -706,10 +870,12 @@ if (localStorage.getItem(ADMIN_KEY) === 'true') {
 //  NAVEGACIÓN
 // ─────────────────────────────────────────────────
 const TITLES = {
-  overview: 'Resumen General',
-  reservas: 'Gestión de Reservas',
-  clientes: 'Clientes',
-  tiendas:  'Estadísticas por Tienda',
+  overview:  'Resumen General',
+  reservas:  'Gestión de Reservas',
+  pedidos:   'Gestión de Pedidos',
+  clientes:  'Clientes',
+  resenias:  'Reseñas de Clientes',
+  tiendas:   'Estadísticas por Tienda',
 };
 
 function showView(name) {
@@ -720,26 +886,137 @@ function showView(name) {
   document.getElementById('viewTitle').textContent = TITLES[name];
 
   if (name === 'reservas')  renderTablaReservas();
+  if (name === 'pedidos')   renderTablaPedidos();
   if (name === 'clientes')  renderClientes();
+  if (name === 'resenias')  renderResenias();
   if (name === 'tiendas')   renderTiendas();
 }
 
-// ─────────────────────────────────────────────────
-//  DATOS DEMO (desactivado - solo reservas reales)
-// ─────────────────────────────────────────────────
-function generarDemoData() {
-  // Demo data desactivado - solo se muestran reservas reales
-  return;
+// ... 
+
+function renderTablaPedidos() {
+  const q = (document.getElementById('searchPedidos')?.value || '').toLowerCase();
+  let r = loadReservations().filter(x => x.type === 'PRODUCT_ORDER');
+
+  if (q) {
+    r = r.filter(x =>
+      (x.orderNumber||'').toLowerCase().includes(q) ||
+      (x.customerName||'').toLowerCase().includes(q) ||
+      (x.productName||'').toLowerCase().includes(q)
+    );
+  }
+
+  const el = document.getElementById('tablaPedidosContent');
+  if (!el) return;
+
+  const total = r.length;
+  const paginas = Math.ceil(total / POR_PAGINA);
+  const inicio = (paginaActual - 1) * POR_PAGINA;
+  const fin = inicio + POR_PAGINA;
+  const pageData = r.slice(inicio, fin);
+
+  el.innerHTML = buildTablaPedidosHTML(pageData);
+  // Reutilizar pagination
 }
 
-  // Demo users
-  const usersExist = getCollection(DB_KEYS.USERS);
-  if (usersExist.length === 0) {
-    saveCollection(DB_KEYS.USERS, emails.map((e, i) => ({
-      _id: 'usr_' + i, email: e,
-      createdAt: new Date(hoy - Math.random() * 30 * 86400000).toISOString(),
-    })));
+function buildTablaPedidosHTML(pedidos) {
+  if (pedidos.length === 0) return '<div class="empty">📭 No hay pedidos</div>';
+  
+  let rows = pedidos.map(p => {
+    const fecha = formatReservationDate(p);
+    return `
+      <tr>
+        <td class="font-mono" style="color:var(--neon-cyan)">#${p.orderNumber}</td>
+        <td>
+          <div style="font-weight:600">${p.customerName}</div>
+          <div style="font-size:0.75rem; color:var(--muted)">${p.customerEmail}</div>
+        </td>
+        <td>${p.productName}</td>
+        <td>${p.total}€</td>
+        <td><span class="badge" style="background:rgba(0,229,255,0.1); color:var(--neon-cyan)">${p.status}</span></td>
+        <td>${fecha}</td>
+        <td>
+          <button class="btn-icon" title="Ver dirección" onclick="alert('Dirección: ${p.address}')">📍</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return '<table><thead><tr>' +
+    '<th>ID</th><th>Cliente</th><th>Producto</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ─────────────────────────────────────────────────
+//  DATOS DEMO
+// ─────────────────────────────────────────────────
+function generarDemoData() {
+  if (getCollection(DB_KEYS.RESERVATIONS).length > 0) return;
+
+  const nombres = ['Carlos García','María López','Andrés Ruiz','Lucía Fernández','Pablo Martín','Sara Jiménez','David Sánchez','Elena Torres','Javier Moreno','Ana Díaz','Raúl Hernández','Laura Navarro'];
+  const servicios = ['Reparación de pantalla','Cambio de batería','Reparación de cámara','Daño por agua','Conector de carga'];
+  const estados = ['Solicitud recibida','En diagnóstico','Reparando','Listo para recoger','Entregado'];
+  const modelos = ['iPhone 14 Pro','iPhone 13','Samsung Galaxy S23','Samsung Galaxy A54','Xiaomi Redmi Note 13','iPhone 15','Samsung Galaxy S24','Xiaomi 13T'];
+
+  // Usuarios
+  const users = nombres.map((n, i) => {
+    const email = n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ /g,'.') + '@gmail.com';
+    const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random() * 30));
+    return { _id: 'demo_u' + i, email, name: n, passwordHash: 'demo', createdAt: d.toISOString() };
+  });
+  saveCollection(DB_KEYS.USERS, users);
+
+  // Reservas
+  const reservas = [];
+  for (let i = 0; i < 18; i++) {
+    const u = users[i % users.length];
+    const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random() * 14));
+    d.setHours(9 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60));
+    const svc = servicios[Math.floor(Math.random() * servicios.length)];
+    const store = TIENDAS[Math.floor(Math.random() * TIENDAS.length)];
+    const status = estados[Math.floor(Math.random() * estados.length)];
+    const model = modelos[Math.floor(Math.random() * modelos.length)];
+    reservas.push({
+      _id: 'demo_r' + i,
+      orderNumber: 'FL-2026-' + (1000 + i),
+      email: u.email,
+      phone: '6' + String(Math.floor(10000000 + Math.random() * 90000000)),
+      service: svc + ' · ' + model,
+      store: store,
+      status: status,
+      createdAt: d.toISOString()
+    });
   }
+  saveCollection(DB_KEYS.RESERVATIONS, reservas);
+
+  // Reseñas
+  const comentarios = [
+    'Muy rápido y profesional, mi móvil quedó como nuevo.',
+    'Buen precio y la reparación fue en menos de una hora.',
+    'Excelente atención al cliente, muy amables.',
+    'La pantalla quedó perfecta, se nota calidad.',
+    'Tuve que esperar un poco pero el resultado merece la pena.',
+    'Servicio impecable, lo recomiendo sin duda.',
+    'Reparación rápida y con garantía, muy contento.',
+    'El mejor servicio de reparación que he probado en Valladolid.'
+  ];
+  const tiendaReview = ['FixLab Río Shopping','FixLab Centro (Calle Acibelas, 9)','FixLab Burgos (Calle Santiago Apóstol, 31)'];
+  const svcReview = ['Reparación de pantalla','Cambio de batería','Reparación de cámara','Reparación de conector de carga','Diagnóstico gratuito'];
+  const reviews = [];
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random() * 20));
+    reviews.push({
+      name: nombres[i],
+      store: tiendaReview[i % tiendaReview.length],
+      service: svcReview[i % svcReview.length],
+      rating: String(4 + Math.floor(Math.random() * 2)),
+      aspects: ['rapidez','calidad','atencion'][Math.floor(Math.random()*3)],
+      nps: String(7 + Math.floor(Math.random() * 4)),
+      comment: comentarios[i],
+      date: d.toLocaleDateString('es-ES')
+    });
+  }
+  saveCollection(DB_KEYS.REVIEWS, reviews);
 }
 
 // ─────────────────────────────────────────────────
@@ -747,7 +1024,7 @@ function generarDemoData() {
 // ─────────────────────────────────────────────────
 function loadData() {
   generarDemoData();
-  const reservas = getCollection(DB_KEYS.RESERVATIONS);
+  const reservas = loadReservations();
   const users    = getCollection(DB_KEYS.USERS);
   renderKPIs(reservas, users);
   renderChartDias(reservas);
@@ -763,8 +1040,10 @@ function loadData() {
 function renderKPIs(reservas, users) {
   document.getElementById('kpiTotalReservas').textContent = reservas.length;
   const hoy = new Date().toDateString();
-  const hoyCount = reservas.filter(r =>
-    new Date(r.createdAt).toDateString() === hoy).length;
+  const hoyCount = reservas.filter(r => {
+    const date = getReservationDate(r);
+    return date ? date.toDateString() === hoy : false;
+  }).length;
   document.getElementById('kpiReservasSub').textContent =
     hoyCount > 0 ? `+${hoyCount} hoy` : 'ninguna hoy';
 
@@ -808,7 +1087,8 @@ function renderChartDias(reservas) {
     dias.push({ label: `${d.getDate()}/${d.getMonth()+1}`, date: d.toDateString(), count: 0 });
   }
   reservas.forEach(r => {
-    const ds = new Date(r.createdAt).toDateString();
+    const date = getReservationDate(r);
+    const ds = date ? date.toDateString() : '';
     const d = dias.find(x => x.date === ds);
     if (d) d.count++;
   });
@@ -1008,8 +1288,11 @@ function renderChartEstados(reservas) {
 function renderTablaOverview(reservas) {
   const el = document.getElementById('tableOverviewContent');
   if (!el) return;
-  const ultimas = [...reservas].sort((a,b) =>
-    new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+  const ultimas = [...reservas].sort((a,b) => {
+    const da = getReservationDate(a);
+    const db = getReservationDate(b);
+    return (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
+  }).slice(0, 5);
   el.innerHTML = buildTablaHTML(ultimas, false);
 }
 
@@ -1018,14 +1301,18 @@ function renderTablaOverview(reservas) {
 // ─────────────────────────────────────────────────
 function renderTablaReservas() {
   const q = (document.getElementById('searchReservas')?.value || '').toLowerCase();
-  let reservas = getCollection(DB_KEYS.RESERVATIONS);
+  let reservas = loadReservations();
   if (q) reservas = reservas.filter(r =>
-    (r.orderNumber||'').toLowerCase().includes(q) ||
+    (getReservationTicket(r) || '').toLowerCase().includes(q) ||
     (r.email||'').toLowerCase().includes(q) ||
     (r.service||'').toLowerCase().includes(q) ||
     (r.store||'').toLowerCase().includes(q)
   );
-  reservas.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  reservas.sort((a,b) => {
+    const da = getReservationDate(a);
+    const db = getReservationDate(b);
+    return (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
+  });
 
   const total = reservas.length;
   const paginas = Math.ceil(total / POR_PAGINA);
@@ -1056,8 +1343,7 @@ function buildTablaHTML(reservas, editable) {
     </div>`;
 
   const rows = reservas.map(r => {
-    const fecha = new Date(r.createdAt).toLocaleDateString('es-ES',
-      {day:'2-digit', month:'2-digit', year:'numeric'});
+    const fecha = formatReservationDate(r);
     const svc = (r.service||'').split('·')[0].trim() || 'Servicio';
     const badge = buildBadge(r.status || 'Solicitud recibida');
 
@@ -1071,7 +1357,7 @@ function buildTablaHTML(reservas, editable) {
     }
 
     return `<tr>
-      <td class="mono" style="color:var(--neon-yellow)">${r.orderNumber || '—'}</td>
+      <td class="mono" style="color:var(--neon-yellow)">${getReservationTicket(r)}</td>
       <td>${r.email || '—'}</td>
       <td>${svc}</td>
       <td class="muted">${r.store || '—'}</td>
@@ -1188,6 +1474,69 @@ function renderTiendas() {
       `).join('')}` : '<div style="color:var(--muted); font-size:0.82rem;">Sin reservas aún</div>'}
     </div>`;
   }).join('');
+}
+
+// ─────────────────────────────────────────────────
+//  RESEÑAS
+// ─────────────────────────────────────────────────
+function renderResenias() {
+  const q = (document.getElementById('searchResenias')?.value || '').toLowerCase();
+  let reviews = getCollection(DB_KEYS.REVIEWS);
+  if (q) reviews = reviews.filter(r =>
+    (r.name||'').toLowerCase().includes(q) ||
+    (r.store||'').toLowerCase().includes(q) ||
+    (r.comment||'').toLowerCase().includes(q) ||
+    (r.service||'').toLowerCase().includes(q)
+  );
+
+  const allReviews = getCollection(DB_KEYS.REVIEWS);
+  document.getElementById('kpiResenias').textContent = allReviews.length;
+  if (allReviews.length > 0) {
+    const avg = allReviews.reduce((s,r) => s + (parseInt(r.rating)||0), 0) / allReviews.length;
+    document.getElementById('kpiReseniasAvg').textContent = avg.toFixed(1) + '★ media';
+    const npsVals = allReviews.filter(r => r.nps !== '' && r.nps !== 'No indicado').map(r => parseInt(r.nps));
+    document.getElementById('kpiNPS').textContent = npsVals.length ? (npsVals.reduce((s,v)=>s+v,0)/npsVals.length).toFixed(1) : '—';
+  } else {
+    document.getElementById('kpiReseniasAvg').textContent = 'sin reseñas';
+    document.getElementById('kpiNPS').textContent = '—';
+  }
+
+  const el = document.getElementById('reseniasContent');
+  if (!el) return;
+
+  if (reviews.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">⭐</div><p>No hay reseñas aún</p></div>';
+    return;
+  }
+
+  const starsHTML = (n) => {
+    let s = '';
+    for (let i = 0; i < 5; i++) s += i < n ? '★' : '☆';
+    return '<span style="color:var(--neon-yellow);letter-spacing:2px;">' + s + '</span>';
+  };
+
+  const rows = reviews.map((r, idx) => '<tr>' +
+    '<td>' + (r.name || '—') + '</td>' +
+    '<td>' + starsHTML(parseInt(r.rating)||0) + '</td>' +
+    '<td class="muted">' + (r.store || '—') + '</td>' +
+    '<td class="muted">' + (r.service || '—') + '</td>' +
+    '<td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (r.comment || '—') + '</td>' +
+    '<td class="mono" style="color:var(--neon-cyan)">' + (r.nps !== '' && r.nps !== 'No indicado' ? r.nps + '/10' : '—') + '</td>' +
+    '<td class="muted mono">' + (r.date || '—') + '</td>' +
+    '<td><button class="btn-sm btn-outline" style="padding:0.3rem 0.6rem;font-size:0.72rem;" onclick="deleteResenia(' + idx + ')">✕</button></td>' +
+  '</tr>').join('');
+
+  el.innerHTML = '<table><thead><tr>' +
+    '<th>Cliente</th><th>Rating</th><th>Tienda</th><th>Servicio</th><th>Comentario</th><th>NPS</th><th>Fecha</th><th></th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+function deleteResenia(idx) {
+  if (!confirm('¿Eliminar esta reseña?')) return;
+  const reviews = getCollection(DB_KEYS.REVIEWS);
+  reviews.splice(idx, 1);
+  saveCollection(DB_KEYS.REVIEWS, reviews);
+  renderResenias();
 }
 
 // ─────────────────────────────────────────────────

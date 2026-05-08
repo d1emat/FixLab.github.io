@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -27,7 +27,6 @@
         <li><a href="contacto.html">Contacto</a></li>
       </ul>
         <div style="display:flex; gap:0.5rem; align-items:center;">
-          <a class="btn-dashboard" href="panel_control.html">⚡ Admin</a>
           <a class="btn btn-login" href="login.html">Login</a>
         </div>
     </nav>
@@ -51,6 +50,55 @@
         <aside class="hero-visual">
           <img id="heroPhoneImage" src="Fotos/samsung.webp" alt="Samsung" class="hero-image" width="300" height="400" loading="eager">
         </aside>
+      </div>
+    </section>
+
+    <section id="reserva-rapida" class="section reveal" style="padding-top: 2rem;">
+      <div class="container">
+        <div class="glass-card" style="padding: 2.5rem; border-top: 3px solid var(--neon-yellow);">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 class="section-title" style="margin-bottom: 0.5rem;">Reserva Rápida</h2>
+            <p class="section-subtitle">Ahorra tiempo y asegura tu turno en tienda.</p>
+          </div>
+          <form id="homeReservationForm" class="grid-form">
+            <div class="field">
+              <label for="homeName">Nombre</label>
+              <input type="text" id="homeName" placeholder="Tu nombre" required>
+            </div>
+            <div class="field">
+              <label for="homePhone">Teléfono</label>
+              <input type="tel" id="homePhone" placeholder="Tu teléfono" required>
+            </div>
+            <div class="field">
+              <label for="homeEmail">Email (Opcional)</label>
+              <input type="email" id="homeEmail" placeholder="tu@email.com">
+            </div>
+            <div class="field">
+              <label for="homeService">Servicio</label>
+              <select id="homeService" required>
+                <option value="">Selecciona servicio</option>
+                <option>Reparación de pantalla</option>
+                <option>Cambio de batería</option>
+                <option>Reparación de cámara</option>
+                <option>Daños por agua</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="homeStore">Tienda</label>
+              <select id="homeStore" required>
+                <option value="">Selecciona tienda</option>
+                <option>FixLab Río Shopping</option>
+                <option>FixLab Centro</option>
+                <option>FixLab Burgos</option>
+              </select>
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: center; margin-top: 1rem;">
+              <button type="submit" class="btn btn-primary" style="width: 100%; max-width: 300px;">Reservar ahora</button>
+            </div>
+            <p id="homeReservationMsg" class="form-message" style="grid-column: 1 / -1; text-align: center; margin-top: 1rem;"></p>
+          </form>
+        </div>
       </div>
     </section>
 
@@ -102,6 +150,11 @@
         <a href="servicios.html" class="btn btn-secondary" style="margin-top: 1rem;">Ver todos los servicios</a>
       </div>
     </section>
+
+
+
+    <!-- Activity Toasts Container -->
+    <div id="activityToasts" class="activity-toast-container"></div>
 
     <section class="section section-soft reveal">
       <div class="container">
@@ -186,7 +239,7 @@
             </div>
              </div>
 
-            <button type="button" class="btn btn-primary" style="margin-top:1rem;" onclick="alert('Botón clicado'); calcularPresupuesto()">Ver presupuesto</button>
+            <button type="button" class="btn btn-primary" style="margin-top:1rem;" onclick="calcularPresupuesto()">Ver presupuesto</button>
 
            <div id="calcResult" class="calc-result" hidden>
               <div class="calc-result-inner">
@@ -263,6 +316,42 @@
         <a class="btn btn-light" href="reserva.html">Reservar reparación</a>
       </div>
     </section>
+
+  <!-- ══ POP-UP DE CONFIRMACIÓN ══════════════════════════════ -->
+  <div class="popup-overlay" id="confirmPopup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+    <div class="popup-box">
+      <button class="popup-close" id="popupClose" aria-label="Cerrar">✕</button>
+
+      <div class="popup-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+             stroke="#F5E642" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+
+      <p class="popup-title" id="popupTitle">¡Reserva enviada!</p>
+      <p class="popup-subtitle">
+        Guarda tu código de seguimiento para consultar el estado de tu reparación.
+      </p>
+
+      <div class="popup-code-box">
+        <p class="popup-code-label">Tu código de reparación</p>
+        <p class="popup-code-value" id="popupCode">FL-2026-0000</p>
+        <button class="popup-code-copy" id="copyCodeBtn" type="button">Copiar</button>
+      </div>
+
+      <div class="popup-actions">
+        <a href="seguimiento-publico.html" class="popup-btn-primary" id="popupTrackBtn">
+          Ver seguimiento
+        </a>
+        <button class="popup-btn-secondary" id="popupCloseBottom" type="button">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
   </main>
 
   <footer class="site-footer">
@@ -277,7 +366,20 @@
         <a href="contacto.html">Contacto</a>
         <a href="aviso-legal.html">Legal</a>
       </nav>
-      <p>© <span id="year"></span> FixLab</p>
+      <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 2rem;">
+        <div>
+          <p style="font-family: Orbitron; color: var(--neon-cyan); margin-bottom: 0.5rem;">ESTADO DEL SISTEMA</p>
+          <div style="font-family: 'Share Tech Mono'; font-size: 0.8rem; line-height: 1.6;">
+            <p>INFRAESTRUCTURA: <span style="color: var(--neon-green)">OPERATIVA</span></p>
+            <p>CARGA DE SERVIDOR: <span id="serverLoad">12%</span></p>
+            <p>COLA DE REPARACIÓN: <span id="repairQueue">3 PEDIDOS</span></p>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <p id="digitalClock" style="font-family: 'Share Tech Mono'; font-size: 2rem; color: var(--neon-cyan); margin-bottom: 0.5rem;">00:00:00</p>
+          <p>© <span id="year"></span> FixLab S.L. | Todos los derechos reservados.</p>
+        </div>
+      </div>
     </div>
   </footer>
 

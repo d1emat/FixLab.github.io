@@ -100,11 +100,41 @@ const FixLabDB = {
     }
   },
 
+  // Simulación de cifrado para proteger el localStorage
+  _encrypt: (data) => {
+    try {
+      const str = JSON.stringify(data);
+      let res = "";
+      for (let i = 0; i < str.length; i++) {
+        res += String.fromCharCode(str.charCodeAt(i) ^ 0x0F);
+      }
+      return btoa(res);
+    } catch (e) { return ""; }
+  },
+
+  _decrypt: (str) => {
+    try {
+      const decoded = atob(str);
+      let res = "";
+      for (let i = 0; i < decoded.length; i++) {
+        res += String.fromCharCode(decoded.charCodeAt(i) ^ 0x0F);
+      }
+      return JSON.parse(res);
+    } catch (e) { return null; }
+  },
+
   // Obtener colección
   getCollection: (collectionName) => {
     try {
-      const data = localStorage.getItem(collectionName);
-      return data ? JSON.parse(data) : [];
+      const raw = localStorage.getItem(collectionName);
+      if (!raw) return [];
+      
+      // Intentar descifrar primero
+      const decrypted = FixLabDB._decrypt(raw);
+      if (decrypted !== null) return decrypted;
+      
+      // Si falla el descifrado, intentar parsear como JSON normal (migración)
+      return JSON.parse(raw);
     } catch {
       return [];
     }
@@ -113,7 +143,8 @@ const FixLabDB = {
   // Guardar colección
   saveCollection: (collectionName, data) => {
     try {
-      localStorage.setItem(collectionName, JSON.stringify(data));
+      const encrypted = FixLabDB._encrypt(data);
+      localStorage.setItem(collectionName, encrypted);
     } catch (e) {
       console.error('FixLabDB: Error guardando colección', collectionName, e);
     }
@@ -728,8 +759,9 @@ const ensureWhatsAppButtonVisible = () => {
 };
 
 ensureWhatsAppButtonVisible();
-const currentSession = FixLabDB.getCollection(FixLabDB.collections.SESSION)[0];
-const currentSessionUser = currentSession ? currentSession.email : null;
+const rawSession = FixLabDB.getCollection(FixLabDB.collections.SESSION);
+const currentSession = Array.isArray(rawSession) ? rawSession[0] : rawSession;
+const currentSessionUser = currentSession && currentSession.email ? currentSession.email : null;
 
 const getCurrentPageFileName = () => (window.location.pathname.split("/").pop() || "").toLowerCase();
 
@@ -913,54 +945,126 @@ if (yearElement) {
   yearElement.textContent = String(new Date().getFullYear());
 }
 
-if (loginButton) {
+const normalizeSiteHeader = () => {
+  const nav = document.querySelector(".site-header .nav");
+  if (!nav) return;
+  const navList = nav.querySelector("#navLinks");
+  if (!navList) return;
+
+  const navLabelMap = {
+    "index.html": "Inicio",
+    "servicios.html": "Servicios",
+    "calculadora.html": "Presupuesto",
+    "tiendas.html": "Tiendas físicas",
+    "tienda.html": "Tienda",
+    "reserva.html": "Reserva",
+    "seguimiento-publico.html": "Seguimiento",
+    "contacto.html": "Contacto"
+  };
+
+  Object.entries(navLabelMap).forEach(([href, label]) => {
+    const link = nav.querySelector(`#navLinks a[href="${href}"]`);
+    if (link) {
+      link.textContent = label;
+    }
+  });
+
+  // Mantener el header igual que index.html en todas las páginas
+  const canonicalOrder = [
+    "index.html",
+    "servicios.html",
+    "calculadora.html",
+    "tiendas.html",
+    "tienda.html",
+    "reserva.html",
+    "seguimiento-publico.html",
+    "contacto.html"
+  ];
+
+  canonicalOrder.forEach((href) => {
+    let link = navList.querySelector(`a[href="${href}"]`);
+    if (!link) {
+      const li = document.createElement("li");
+      link = document.createElement("a");
+      link.href = href;
+      link.textContent = navLabelMap[href] || href;
+      li.appendChild(link);
+      navList.appendChild(li);
+    }
+  });
+
+  canonicalOrder.forEach((href) => {
+    const li = navList.querySelector(`a[href="${href}"]`)?.closest("li");
+    if (li) navList.appendChild(li);
+  });
+  navList.classList.toggle("nav-links-extended", navList.querySelectorAll("li").length > 7);
+
+  navList.querySelectorAll("a").forEach((link) => link.classList.remove("active"));
+  const currentPage = getCurrentPageFileName();
+  const sectionActiveMap = {
+    "index.html": "index.html",
+    "servicios.html": "servicios.html",
+    "servicio-agua.html": "servicios.html",
+    "servicio-bateria.html": "servicios.html",
+    "servicio-camara.html": "servicios.html",
+    "servicio-conector.html": "servicios.html",
+    "servicio-pantalla.html": "servicios.html",
+    "calculadora.html": "calculadora.html",
+    "tiendas.html": "tiendas.html",
+    "tienda-centro.html": "tiendas.html",
+    "tienda-rio-shopping.html": "tiendas.html",
+    "tienda-burgos.html": "tiendas.html",
+    "tienda.html": "tienda.html",
+    "producto.html": "tienda.html",
+    "reacondicionados.html": "tienda.html",
+    "reserva.html": "reserva.html",
+    "reserva-producto.html": "reserva.html",
+    "seguimiento-publico.html": "seguimiento-publico.html",
+    "seguimiento.html": "seguimiento-publico.html",
+    "contacto.html": "contacto.html"
+  };
+  const activeHref = sectionActiveMap[currentPage];
+  if (activeHref) {
+    navList.querySelector(`a[href="${activeHref}"]`)?.classList.add("active");
+  }
+
+  let actions = nav.querySelector(".nav-actions");
+  if (!actions) {
+    actions = document.createElement("div");
+    actions.className = "nav-actions";
+    nav.appendChild(actions);
+  }
+
+  // Remove any existing admin link
+  const existingAdmin = actions.querySelector('a[href="panel_control.html"]') || nav.querySelector('a[href="panel_control.html"]');
+  if (existingAdmin) existingAdmin.remove();
+
+  let userLink = actions.querySelector('a[href="login.html"], a.btn-login') || nav.querySelector('a[href="login.html"], a.btn-login');
+  if (!userLink) {
+    userLink = document.createElement("a");
+    userLink.href = "login.html";
+  }
+  userLink.className = "btn btn-login";
+  userLink.textContent = "Iniciar sesión";
+
+  actions.appendChild(userLink);
+};
+
+normalizeSiteHeader();
+
+const headerLoginButton = document.querySelector(".btn-login");
+if (headerLoginButton) {
   if (currentSessionUser) {
-    loginButton.textContent = "Cerrar sesión";
-    loginButton.setAttribute("href", "#");
-    loginButton.addEventListener("click", (event) => {
+    headerLoginButton.textContent = "Cerrar sesión";
+    headerLoginButton.setAttribute("href", "#");
+    headerLoginButton.addEventListener("click", (event) => {
       event.preventDefault();
       FixLabDB.saveCollection(FixLabDB.collections.SESSION, []);
       window.location.href = "index.html";
     });
   } else {
-    loginButton.textContent = "Iniciar sesión";
-    loginButton.setAttribute("href", "login.html");
-  }
-}
-
-if (navLinks && currentSessionUser && !navLinks.querySelector('a[href="seguimiento.html"]')) {
-  const trackingItem = document.createElement("li");
-  const trackingLink = document.createElement("a");
-  trackingLink.href = "seguimiento.html";
-  trackingLink.textContent = "Seguimiento";
-  if (getCurrentPageFileName() === "seguimiento.html") {
-    trackingLink.classList.add("active");
-  }
-  trackingItem.appendChild(trackingLink);
-
-  const contactItem = navLinks.querySelector('a[href="contacto.html"]')?.closest("li");
-  if (contactItem) {
-    navLinks.insertBefore(trackingItem, contactItem);
-  } else {
-    navLinks.appendChild(trackingItem);
-  }
-}
-
-if (navLinks && !navLinks.querySelector('a[href="reserva.html"]')) {
-  const reserveItem = document.createElement("li");
-  const reserveLink = document.createElement("a");
-  reserveLink.href = "reserva.html";
-  reserveLink.textContent = "Reserva";
-  if (getCurrentPageFileName() === "reserva.html") {
-    reserveLink.classList.add("active");
-  }
-  reserveItem.appendChild(reserveLink);
-
-  const contactItem = navLinks.querySelector('a[href="contacto.html"]')?.closest("li");
-  if (contactItem) {
-    navLinks.insertBefore(reserveItem, contactItem);
-  } else {
-    navLinks.appendChild(reserveItem);
+    headerLoginButton.textContent = "Iniciar sesión";
+    headerLoginButton.setAttribute("href", "login.html");
   }
 }
 
@@ -1063,14 +1167,28 @@ if (loginForm && loginMessage) {
       return;
     }
 
-    const user = $;
+    // Check admin credentials using hash
+    const ADMIN_EMAIL_B64 = "Zml4bGFiY3lsQGdtYWlsLmNvbQ==";
+    const ADMIN_PASS_B64 = "U2tpYmlkaTY3"; // b64 de Skibidi67
+    
+    if (btoa(email) === ADMIN_EMAIL_B64 && btoa(password) === ADMIN_PASS_B64) {
+      localStorage.setItem('fixlab_admin_session', 'true');
+      loginMessage.textContent = "Acceso admin correcto. Redirigiendo al panel...";
+      loginMessage.style.color = "#3d63db";
+      window.setTimeout(() => {
+        window.location.href = "panel_control.html";
+      }, 600);
+      return;
+    }
+
+    const user = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
     if (!user || !user.passwordHash || !FixLabDB.verifyPassword(password, user.passwordHash)) {
       loginMessage.textContent = "Cuenta no encontrada o contraseña incorrecta. Regístrate primero.";
       loginMessage.style.color = "#b1416f";
       return;
     }
 
-    FixLabDB.saveCollection(FixLabDB.collections.SESSION, { email, loggedInAt: new Date().toISOString() });
+    FixLabDB.saveCollection(FixLabDB.collections.SESSION, [{ email, loggedInAt: new Date().toISOString() }]);
     loginMessage.textContent = "Inicio de sesión correcto. Redirigiendo...";
     loginMessage.style.color = "#3d63db";
     window.setTimeout(() => {
@@ -1170,15 +1288,23 @@ if (registerForm && registerMessage) {
     const formData = new FormData(registerForm);
     const name = (formData.get("name") || "").toString().trim();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
+    const phone = (formData.get("phone") || "").toString().trim();
     const password = (formData.get("password") || "").toString().trim();
+    const confirmPassword = (formData.get("confirmPassword") || "").toString().trim();
 
-    if (!name || !email || password.length < 6) {
+    if (!name || !email || !phone || password.length < 6) {
       registerMessage.textContent = "Completa todos los campos y usa una contraseña de al menos 6 caracteres.";
       registerMessage.style.color = "#b1416f";
       return;
     }
 
-    const alreadyExists = $;
+    if (password !== confirmPassword) {
+      registerMessage.textContent = "Las contraseñas no coinciden.";
+      registerMessage.style.color = "#b1416f";
+      return;
+    }
+
+    const alreadyExists = FixLabDB.findOne(FixLabDB.collections.USERS, { email });
     if (alreadyExists) {
       registerMessage.textContent = "Ya existe una cuenta con ese email.";
       registerMessage.style.color = "#b1416f";
@@ -1188,6 +1314,7 @@ if (registerForm && registerMessage) {
     FixLabDB.insert(FixLabDB.collections.USERS, {
       name,
       email,
+      phone,
       passwordHash: FixLabDB.hashPassword(password)
     });
     
@@ -1355,6 +1482,107 @@ if (reservationForm && reservationMessage) {
       reservationMessage.style.color = "#3d63db";
       reservationForm.reset();
     }
+  });
+}
+
+// --- LOGICA RESERVA HOME & POPUP ---
+const homeReservationForm = document.getElementById("homeReservationForm");
+const homeReservationMsg = document.getElementById("homeReservationMsg");
+const confirmPopup = document.getElementById("confirmPopup");
+
+if (homeReservationForm && homeReservationMsg && confirmPopup) {
+  const popupCode = document.getElementById("popupCode");
+  const popupClose = document.getElementById("popupClose");
+  const popupCloseBottom = document.getElementById("popupCloseBottom");
+  const copyCodeBtn = document.getElementById("copyCodeBtn");
+
+  const openPopup = (code) => {
+    popupCode.textContent = code;
+    const trackBtn = document.getElementById("popupTrackBtn");
+    if (trackBtn) trackBtn.href = `seguimiento-publico.html?ticket=${code}`;
+    confirmPopup.classList.add("active");
+    document.body.style.overflow = "hidden";
+  };
+
+  const closePopup = () => {
+    confirmPopup.classList.remove("active");
+    document.body.style.overflow = "";
+  };
+
+  if (popupClose) popupClose.addEventListener("click", closePopup);
+  if (popupCloseBottom) popupCloseBottom.addEventListener("click", closePopup);
+  if (copyCodeBtn) {
+    copyCodeBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(popupCode.textContent).then(() => {
+        copyCodeBtn.textContent = "¡Copiado!";
+        setTimeout(() => copyCodeBtn.textContent = "Copiar", 2000);
+      });
+    });
+  }
+
+  homeReservationForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("homeName").value.trim();
+    const phone = document.getElementById("homePhone").value.trim();
+    let email = document.getElementById("homeEmail") ? document.getElementById("homeEmail").value.trim() : "";
+    
+    // Auto-completar con sesión si no hay email manual
+    if (!email) {
+      const sessionData = localStorage.getItem('fixlab_db_session');
+      if (sessionData) {
+        try {
+          const parsed = JSON.parse(sessionData);
+          if (Array.isArray(parsed) && parsed.length > 0) email = parsed[0].email;
+          else if (typeof parsed === 'string') email = parsed;
+        } catch(e) {
+          email = sessionData;
+        }
+      }
+    }
+
+    const service = document.getElementById("homeService").value;
+    const store = document.getElementById("homeStore").value;
+
+    if (!name || !phone || !service || !store) {
+      homeReservationMsg.textContent = "Por favor, rellena todos los campos.";
+      homeReservationMsg.style.color = "var(--neon-pink)";
+      return;
+    }
+
+    homeReservationMsg.textContent = "Procesando...";
+    homeReservationMsg.style.color = "var(--neon-cyan)";
+
+    const orderNumber = "FL-2026-" + Math.floor(1000 + Math.random() * 9000);
+    
+    // Guardar en la DB local
+    FixLabDB.insert(FixLabDB.collections.RESERVATIONS, {
+      orderNumber,
+      name,
+      phone,
+      email: email || "",
+      service,
+      store,
+      status: "Solicitud recibida",
+      createdAt: new Date().toISOString()
+    });
+
+    // Guardar también en el formato que usa seguimiento-publico.html
+    const publicReservations = JSON.parse(localStorage.getItem("fixlabReservations") || "[]");
+    publicReservations.push({
+      code: orderNumber,
+      phone: phone,
+      name: name,
+      email: email || "",
+      service: service,
+      store: store,
+      status: "Recibida",
+      date: new Date().toLocaleDateString("es-ES")
+    });
+    localStorage.setItem("fixlabReservations", JSON.stringify(publicReservations));
+
+    homeReservationMsg.textContent = "";
+    homeReservationForm.reset();
+    openPopup(orderNumber);
   });
 }
 
@@ -2826,7 +3054,10 @@ if (publicTrackingForm && ticketNumberInput) {
     }
 
     const reservations = FixLabDB.getCollection(FixLabDB.collections.RESERVATIONS);
-    const found = reservations.find(r => (r.orderNumber || "").toUpperCase() === ticket);
+    const found = reservations.find((r) => {
+      const reservationCode = (r.orderNumber || r.code || "").toString().trim().toUpperCase();
+      return reservationCode === ticket;
+    });
 
     if (!found) {
       if (publicTrackingMessage) publicTrackingMessage.hidden = true;
@@ -2908,3 +3139,83 @@ if (getCurrentPageFileName() === "reserva.html") {
   }
 }
 
+
+/* ═════════════════════════════════════════════════════════
+   ══ FIXLAB PREMIUM EXPERIENCE LOGIC (CONSOLIDATED) ══
+   ═════════════════════════════════════════════════════════ */
+document.addEventListener("DOMContentLoaded", () => {
+  
+  // 1. CYBER MARQUEE (Noticias)
+  const marqueeContainer = document.querySelector(".cyber-marquee");
+  if (!marqueeContainer) {
+    const marquee = document.createElement("div");
+    marquee.className = "cyber-marquee";
+    const news = [
+      "SISTEMAS OPERATIVOS: ONLINE", "REPARACIÓN EN 45 MINUTOS", 
+      "IPHONE 15 REACONDICIONADOS DISPONIBLES", "SOPORTE 24/7 WHATSAPP"
+    ];
+    marquee.innerHTML = `<div class="marquee-content">${news.map(n => `<div class="marquee-item"><span class="marquee-dot"></span>${n}</div>`).join('')}${news.map(n => `<div class="marquee-item"><span class="marquee-dot"></span>${n}</div>`).join('')}</div>`;
+    document.body.prepend(marquee);
+  }
+
+  // 2. CURSOR GLOW
+  const glow = document.createElement("div");
+  glow.className = "cursor-glow";
+  document.body.appendChild(glow);
+  window.addEventListener("mousemove", (e) => {
+    glow.style.left = e.clientX + "px";
+    glow.style.top = e.clientY + "px";
+  });
+
+  // 3. SPLASH SCREEN
+  const splash = document.querySelector(".splash-screen");
+  if (!splash) {
+    const s = document.createElement("div");
+    s.className = "splash-screen";
+    s.innerHTML = `<img src="Fotos/FixLab_Logo.png" class="splash-logo"><div class="splash-loader-bar"><div class="splash-progress" id="splashProgress"></div></div><div class="splash-text" id="splashText">INITIALIZING...</div>`;
+    document.body.prepend(s);
+    let p = 0;
+    const interval = setInterval(() => {
+      p += 15;
+      if (document.getElementById("splashProgress")) document.getElementById("splashProgress").style.width = p + "%";
+      if (p >= 100) {
+        clearInterval(interval);
+        setTimeout(() => { s.classList.add("hidden"); setTimeout(() => s.remove(), 600); }, 400);
+      }
+    }, 100);
+  }
+
+  // 5. LIVE ACTIVITY TOASTS
+  const activityContainer = document.getElementById("activityToasts");
+  if (activityContainer) {
+    const showToast = () => {
+      const acts = [
+        { t: "Nuevo pedido: <b>iPhone 14</b>", i: "🛒" },
+        { t: "Reparación: <b>Samsung S23</b>", i: "🔧" },
+        { t: "Nueva reseña ⭐⭐⭐⭐⭐", i: "⭐" }
+      ];
+      const a = acts[Math.floor(Math.random() * acts.length)];
+      const toast = document.createElement("div");
+      toast.className = "activity-toast";
+      toast.innerHTML = `<div class="toast-icon">${a.i}</div><div class="toast-content">${a.t}<br><small>hace un momento</small></div>`;
+      activityContainer.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    };
+    setInterval(() => { if (Math.random() > 0.5) showToast(); }, 15000);
+  }
+
+  // 7. SCROLL REVEAL (3D EFFECTS)
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("active");
+      }
+    });
+  }, { threshold: 0.05 }); // Umbral más bajo para activación inmediata
+
+  document.querySelectorAll(".reveal, .section, .card, .glass-card").forEach(el => {
+    if (!el.classList.contains("reveal")) el.classList.add("reveal");
+    revealObserver.observe(el);
+  });
+
+});
