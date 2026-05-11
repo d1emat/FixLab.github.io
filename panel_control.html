@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
    <title>FixLab — Panel de Administración</title>
+<<<<<<< HEAD
   <link rel="stylesheet" href="assets/css/styles.css?v=2">
+=======
+  <link rel="stylesheet" href="styles.css?v=2">
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
   <link rel="icon" type="image/png" href="Fotos/FixLab_Logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -347,6 +351,7 @@
       padding: 0.2rem 0.4rem; cursor: pointer;
     }
     .status-select:focus { outline: none; border-color: var(--neon-purple); }
+<<<<<<< HEAD
     .status-actions {
       display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
     }
@@ -366,6 +371,8 @@
       background: rgba(0,229,255,0.18);
       box-shadow: 0 0 12px rgba(0,229,255,0.25);
     }
+=======
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
 
     /* Pagination */
     .pagination {
@@ -786,9 +793,12 @@ function saveCollection(key, data) {
 }
 
 function normalizeReservation(r) {
+<<<<<<< HEAD
   if (!r._id) {
     r._id = 'fl_' + (r.orderNumber || r.code || Date.now()) + '_' + Math.random().toString(36).slice(2, 8);
   }
+=======
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
   if (!r.orderNumber && r.code) {
     r.orderNumber = r.code;
   }
@@ -815,6 +825,7 @@ function getReservationTicket(r) {
   return r.orderNumber || r.code || '—';
 }
 
+<<<<<<< HEAD
 function normalizeTicket(value) {
   return (value || '').toString().replace('#', '').trim().toUpperCase();
 }
@@ -876,6 +887,8 @@ function syncPublicReservationStatus(reservation) {
   }
 }
 
+=======
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
 function loadReservations() {
   const raw = getCollection(DB_KEYS.RESERVATIONS);
   const normalized = raw.map(normalizeReservation);
@@ -1425,7 +1438,11 @@ function buildTablaHTML(reservas, editable) {
       <p>No hay reservas que mostrar</p>
     </div>`;
 
+<<<<<<< HEAD
   const rows = reservas.map((r, rowIndex) => {
+=======
+  const rows = reservas.map(r => {
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
     const fecha = formatReservationDate(r);
     const svc = (r.service||'').split('·')[0].trim() || 'Servicio';
     const badge = buildBadge(r.status || 'Solicitud recibida');
@@ -1436,11 +1453,15 @@ function buildTablaHTML(reservas, editable) {
       const opts = estados.map(e =>
         `<option value="${e}" ${(r.status||'').toLowerCase() === e.toLowerCase() ? 'selected' : ''}>${e}</option>`
       ).join('');
+<<<<<<< HEAD
       const selectId = `statusSelect_${rowIndex}`;
       statusCell = `<div class="status-actions">
         <select id="${selectId}" class="status-select">${opts}</select>
         <button type="button" class="status-accept-btn" onclick="confirmStatus('${getReservationIdentity(r)}', '${selectId}')">Aceptar</button>
       </div>`;
+=======
+      statusCell = `<select class="status-select" onchange="updateStatus('${r._id}', this.value)">${opts}</select>`;
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
     }
 
     return `<tr>
@@ -1474,16 +1495,21 @@ function buildBadge(status) {
 
 function updateStatus(id, newStatus) {
   const reservas = getCollection(DB_KEYS.RESERVATIONS);
+<<<<<<< HEAD
   const normalizedId = normalizeTicket(id);
   const idx = reservas.findIndex(r => {
     const ticket = normalizeTicket(r.orderNumber || r.code);
     const internalId = normalizeTicket(r._id);
     return ticket === normalizedId || internalId === normalizedId;
   });
+=======
+  const idx = reservas.findIndex(r => r._id === id);
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
   if (idx >= 0) {
     reservas[idx].status = newStatus;
     reservas[idx].updatedAt = new Date().toISOString();
     saveCollection(DB_KEYS.RESERVATIONS, reservas);
+<<<<<<< HEAD
     syncPublicReservationStatus(reservas[idx]);
     loadData();
     return true;
@@ -1500,6 +1526,8 @@ function confirmStatus(id, selectId) {
     alert('Estado actualizado y sincronizado con el seguimiento.');
   } else {
     alert('No se pudo actualizar el estado. Recarga el panel e inténtalo de nuevo.');
+=======
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
   }
 }
 
@@ -1682,4 +1710,8 @@ setInterval(() => {
 
 </script>
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> 6928ce5a1c8adb81e64631ab874a41f5b34fd38c
